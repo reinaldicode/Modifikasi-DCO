@@ -1,12 +1,6 @@
 <?php
-
 include('header.php');
-
 ?>
-
-
-
-
 <script type="text/javascript">
 
 document.ready = function() {
@@ -51,9 +45,6 @@ else{
 
 			});
 
-
-
-
 			function finishAjax1(id, response) {
 			  $('#wait_1').hide();
 			  $('#'+id).html(unescape(response));
@@ -91,9 +82,21 @@ else{
 			}
 			</script>
 
-
-
 <script>
+    // Function to prevent spaces in No. Document field
+    function preventSpaces(event) {
+        if (event.which === 32 || event.keyCode === 32) {
+            event.preventDefault();
+            alert('Spasi tidak diperbolehkan pada field No. Document');
+            return false;
+        }
+    }
+
+    // Function to remove spaces if pasted
+    function removeSpaces(element) {
+        element.value = element.value.replace(/\s/g, '');
+    }
+
     function validasi(){
         // var namaValid    = /^[a-zA-Z]+(([\'\,\.\- ][a-zA-Z ])?[a-zA-Z]*)*$/;
         // var emailValid   = /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/;
@@ -105,7 +108,9 @@ else{
 	        var title		= formulir.title1.value;
 	         var desc		= formulir.desc.value;
 	       
-       
+        // File validation
+        var file = formulir.file.files[0];
+        var master = formulir.master.files[0];
 
         var pesan = '';
          
@@ -114,6 +119,12 @@ else{
         if (nodoc== ''){
         	pesan += '-Data Nomor Dokumen belum diisi\n';	
         }
+        
+        // Check for spaces in No. Document
+        if (nodoc.indexOf(' ') !== -1) {
+            pesan += '-Nomor Dokumen tidak boleh mengandung spasi\n';
+        }
+
          if (norev== ''){
         	pesan += '-Data Nomor revisi belum diisi\n';	
         }
@@ -131,6 +142,15 @@ else{
         }
          if (desc== '-'){
         	pesan += '-Data Description Dokumen belum diisi\n';	
+        }
+
+        // File validation - both files are required
+        if (!file) {
+            pesan += '-File Document belum dipilih\n';
+        }
+        
+        if (!master) {
+            pesan += '-File Master belum dipilih\n';
         }
 
         // if ( xtarget== '' || ytarget == '' || lum == '' || ra == ''){
@@ -154,14 +174,7 @@ else{
     }
 </script>
 
-
-	
 </head>
-
-
-
-
-
 <?php
 
 //include 'index.php';
@@ -202,7 +215,7 @@ include 'koneksi.php';
 				 	<tr cellpadding="50px">
 				 		<td>No. Document &nbsp;&nbsp;</td>
 				 		<td>:&nbsp;	&nbsp; &nbsp;</td>
-				 		<td><input type="text" class="form-control" name="nodoc"></td>
+				 		<td><input type="text" class="form-control" name="nodoc" onkeypress="return preventSpaces(event)" oninput="removeSpaces(this)" placeholder="Tidak boleh menggunakan spasi"></td>
 				 	</tr>
 				 	<tr cellpadding="50px">
 				 		<td>No. Revision &nbsp;&nbsp;</td>
@@ -376,19 +389,19 @@ include 'koneksi.php';
 				 	<tr>
 				 		<td>Upload File Document (*Di-Review)<br />
 				 		(File .pdf untuk WI/Procedure)<br />
-				 		(File .xlsx untuk Form)
+				 		(File .xlsx untuk Form) <span style="color: red;">*Required</span>
 				 		</td>
 				 		<td>:</td>
 				 		<td>
-				 		<input type="file" class="form-control" name="file">
+				 		<input type="file" class="form-control" name="file" required>
 				 		</td>
 				 	</tr>
 
 				 	<tr>
-				 		<td>Upload File Master(.xlsx/.docx)</td>
+				 		<td>Upload File Master(.xlsx/.docx) <span style="color: red;">*Required</span></td>
 				 		<td>:</td>
 				 		<td>
-				 		<input type="file" class="form-control" name="master">
+				 		<input type="file" class="form-control" name="master" required>
 				 		</td>
 				 	</tr>
 
@@ -438,6 +451,38 @@ if (isset($_POST['submit']))
 	//$master=$POST['master']
 	$tgl = date('d-m-Y');
 	$state=$_POST['state'];
+
+	// Server-side validation for spaces in nodoc
+	if (strpos($nodoc, ' ') !== false) {
+		?>
+		<script language='javascript'>
+			alert('Nomor Dokumen tidak boleh mengandung spasi');
+			document.location='upload.php';
+		</script>
+		<?php
+		exit;
+	}
+
+	// Server-side validation for file uploads
+	if (!isset($_FILES["file"]) || $_FILES["file"]["error"] == UPLOAD_ERR_NO_FILE) {
+		?>
+		<script language='javascript'>
+			alert('File Document harus diupload');
+			document.location='upload.php';
+		</script>
+		<?php
+		exit;
+	}
+
+	if (!isset($_FILES["master"]) || $_FILES["master"]["error"] == UPLOAD_ERR_NO_FILE) {
+		?>
+		<script language='javascript'>
+			alert('File Master harus diupload');
+			document.location='upload.php';
+		</script>
+		<?php
+		exit;
+	}
 
 	if ($cat=='External')
 	{
