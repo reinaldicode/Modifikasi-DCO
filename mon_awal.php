@@ -1,4 +1,5 @@
-<?php include "index.php"; 
+<?php include "index.php";
+ include "koneksi.php";
 extract($_REQUEST);
 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING| E_PARSE|  E_DEPRECATED));?>
 <br />
@@ -77,8 +78,10 @@ error_reporting(E_ALL ^ (E_NOTICE | E_WARNING| E_PARSE|  E_DEPRECATED));?>
 				 <table >
 				 	
 				 	<?php 
-					$sect="select * from Device";
-					$sql_sect=mysqli_query($sect);
+					$sect = "SELECT * FROM Device";
+				$sql_sect = mysqli_query($link, $sect);
+
+
 						?>
 				 	
 				 	<tr>
@@ -233,42 +236,42 @@ while($info = mysqli_fetch_array($res))
 		<?php echo $i; ?>
 	</td>
 	<td>
-		<?php echo "$info[tgl_upload]";?>
+		<?php echo $info['tgl_upload']; ?>
 	</td>
 	<td>
-		<?php echo "$info[no_doc]";?>
+		<?php echo $info['no_doc']; ?>
 	</td>
 	<td>
-		<?php echo "$info[no_rev]";?>
+		<?php echo $info['no_rev']; ?>
 	</td>
 	<td>
-		<?php echo "$info[no_drf]";?>
+		<?php echo $info['no_drf']; ?>
 	</td>
 	<td>
-	<?php if ($info[no_drf]>12967){$tempat=$info[doc_type];} else {$tempat='document';}?>
-	<a href="<?php echo $tempat; ?>/<?php echo "$info[file]"; ?>" >
-		<?php echo "$info[title]";?>
-		</a>
+	<?php if ($info['no_drf'] > 12967){ $tempat = $info['doc_type']; } else { $tempat = 'document'; } ?>
+	<a href="<?php echo $tempat; ?>/<?php echo $info['file']; ?>" >
+		<?php echo $info['title']; ?>
+	</a>
 	</td>
 	<td>
-		<?php echo "$info[process]";?>
+		<?php echo $info['process']; ?>
 	</td>
 	<td>
-		<?php echo "$info[section]";?>
+		<?php echo $info['section']; ?>
 	</td>
 	<td>
-	<a href="detail.php?drf=<?php echo $info[no_drf];?>&no_doc=<?php echo $info[no_doc];?>&log=1" class="btn btn-xs btn-info" title="lihat detail"><span class="glyphicon glyphicon-search" ></span> </a>
+	<a href="detail.php?drf=<?php echo $info['no_drf']; ?>&no_doc=<?php echo $info['no_doc']; ?>&log=1" class="btn btn-xs btn-info" title="lihat detail"><span class="glyphicon glyphicon-search" ></span> </a>
 	
-	<a href="radf.php?drf=<?php echo $info[no_drf];?>&section=<?php echo $info[section]?>&log=1" class="btn btn-xs btn-info" title="lihat RADF"><span class="glyphicon glyphicon-eye-open" ></span> </a>	
+	<a href="radf.php?drf=<?php echo $info['no_drf']; ?>&section=<?php echo $info['section']; ?>&log=1" class="btn btn-xs btn-info" title="lihat RADF"><span class="glyphicon glyphicon-eye-open" ></span> </a>	
 	
 	</td>
-	
-	
 </tr>
 </tbody>
 <div>
 <?php 
-$i++;} 
+$i++;
+}
+
 
 
 }

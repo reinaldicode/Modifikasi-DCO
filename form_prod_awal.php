@@ -227,61 +227,65 @@ $res=mysqli_query($link, $sql);
 </thead>
 <?php
 $i=1;
-while($info = mysqli_fetch_array($res)) 
-
-{ ?>
+while ($info = mysqli_fetch_array($res)) { ?>
 <tbody>
 <tr>
-	<td>
-		<?php echo $i; ?>
-	</td>
-	<td>
-		<?php echo "$info[tgl_upload]";?>
-	</td>
-	<td>
-		<?php echo "$info[no_doc]";?>
-	</td>
-	<td>
-		<?php echo "$info[no_rev]";?>
-	</td>
-	<td>
-		<?php echo "$info[no_drf]";?>
-	</td>
-	<td>
-	<?php if ($info[no_drf]>12967){$tempat=$info[doc_type];} else {$tempat='document';}?>
-	<a href="<?php echo $tempat; ?>/<?php echo "$info[file]"; ?>" >
-		<?php echo "$info[title]";?>
-		</a>
-	</td>
-	<td>
-		<?php echo "$info[process]";?>
-	</td>
-	<td>
-		<?php echo "$info[section]";?>
-	</td>
-	<td>
-	<a href="detail.php?drf=<?php echo $info[no_drf];?>&no_doc=<?php echo $info[no_doc];?>" class="btn btn-xs btn-info" title="lihat detail"><span class="glyphicon glyphicon-search" ></span> </a>
-	<a href="lihat_approver.php?drf=<?php echo $info[no_drf];?>" class="btn btn-xs btn-info" title="lihat approver"><span class="glyphicon glyphicon-user" ></span> </a>
-	<a href="radf.php?drf=<?php echo $info[no_drf];?>&section=<?php echo $info[section]?>" class="btn btn-xs btn-info" title="lihat RADF"><span class="glyphicon glyphicon-eye-open" ></span> </a>	
-	<?php if ($state=='Admin' or ($state=="Originator" and $info[user_id]==$nrp)){?>
-	<a href="edit_doc.php?drf=<?php echo $info[no_drf];?>" class="btn btn-xs btn-primary" title="Edit Doc"><span class="glyphicon glyphicon-pencil" ></span> </a>
-	<a href="del_doc.php?drf=<?php echo $info[no_drf];?>" class="btn btn-xs btn-danger" onClick="return confirm('Delete document <?php echo $info[no_doc]?>?')" title="Delete Doc"><span class="glyphicon glyphicon-remove" ></span> </a>
-	<?php if ($info[status]=='Approved') { ?>
-	
-	<a data-toggle="modal" data-target="#myModal2" data-id="<?php echo $info[no_drf]?>" data-lama="<?php echo $info[file]?>" data-status="<?php echo $info[status]?>" class="btn btn-xs btn-success sec-file" title="Secure Document">
-	<span class="glyphicon glyphicon-play" ></span></a>
-	<?php }} ?>
-	</td>
-	
-	
+    <td><?php echo $i; ?></td>
+    <td><?php echo $info['tgl_upload']; ?></td>
+    <td><?php echo $info['no_doc']; ?></td>
+    <td><?php echo $info['no_rev']; ?></td>
+    <td><?php echo $info['no_drf']; ?></td>
+    <td>
+        <?php 
+        if ($info['no_drf'] > 12967) {
+            $tempat = $info['doc_type'];
+        } else {
+            $tempat = 'document';
+        }
+        ?>
+        <a href="<?php echo $tempat; ?>/<?php echo $info['file']; ?>">
+            <?php echo $info['title']; ?>
+        </a>
+    </td>
+    <td><?php echo $info['process']; ?></td>
+    <td><?php echo $info['section']; ?></td>
+    <td>
+        <a href="detail.php?drf=<?php echo $info['no_drf']; ?>&no_doc=<?php echo $info['no_doc']; ?>" class="btn btn-xs btn-info" title="lihat detail">
+            <span class="glyphicon glyphicon-search"></span>
+        </a>
+        <a href="lihat_approver.php?drf=<?php echo $info['no_drf']; ?>" class="btn btn-xs btn-info" title="lihat approver">
+            <span class="glyphicon glyphicon-user"></span>
+        </a>
+        <a href="radf.php?drf=<?php echo $info['no_drf']; ?>&section=<?php echo $info['section']; ?>" class="btn btn-xs btn-info" title="lihat RADF">
+            <span class="glyphicon glyphicon-eye-open"></span>
+        </a>
+
+        <?php if ($state == 'Admin' || ($state == "Originator" && $info['user_id'] == $nrp)) { ?>
+            <a href="edit_doc.php?drf=<?php echo $info['no_drf']; ?>" class="btn btn-xs btn-primary" title="Edit Doc">
+                <span class="glyphicon glyphicon-pencil"></span>
+            </a>
+            <a href="del_doc.php?drf=<?php echo $info['no_drf']; ?>" class="btn btn-xs btn-danger" onClick="return confirm('Delete document <?php echo $info['no_doc']; ?>?')" title="Delete Doc">
+                <span class="glyphicon glyphicon-remove"></span>
+            </a>
+
+            <?php if ($info['status'] == 'Approved') { ?>
+                <a data-toggle="modal" 
+                   data-target="#myModal2" 
+                   data-id="<?php echo $info['no_drf']; ?>" 
+                   data-lama="<?php echo $info['file']; ?>" 
+                   data-status="<?php echo $info['status']; ?>" 
+                   class="btn btn-xs btn-success sec-file" 
+                   title="Secure Document">
+                    <span class="glyphicon glyphicon-play"></span>
+                </a>
+            <?php } ?>
+        <?php } ?>
+    </td>
 </tr>
 </tbody>
-<div>
 <?php 
-$i++;} 
-
-
+    $i++;
 }
 
-
-?> 
+}
+?>
