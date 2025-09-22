@@ -19,8 +19,10 @@ function getTierOne()
 //**************************************
 //     First selection results     //
 //**************************************
-if($_GET['func'] == "section" && isset($_GET['func'])) { 
-   section($_GET['drop_var']); 
+if (isset($_GET['func']) && $_GET['func'] == "section") { 
+    if (isset($_GET['drop_var'])) {
+        section($_GET['drop_var']); 
+    }
 }
 
 function section($drop_var)
@@ -48,9 +50,12 @@ function section($drop_var)
 
 
 
-if($_GET['func'] == "device" && isset($_GET['func'])) { 
-   device($_GET['drop_var2']); 
+if (isset($_GET['func']) && $_GET['func'] == "device") { 
+    if (isset($_GET['drop_var2'])) {
+        device($_GET['drop_var2']); 
+    }
 }
+
 
 function device($drop_var2)
 {  

@@ -36,9 +36,20 @@ $iso=$_GET['iso'];
 
 	$sql="select * from section where sect_name='$section'";
 	$q=mysqli_query($link, $sql);
+
+	if (!$q) {
+		die("Query error: " . mysqli_error($link));
+	}
+
 	$row = mysqli_fetch_array($q);
-	$se=$row['id_section'];
-	
+
+	if ($row) {
+		$se = $row['id_section'];
+	} else {
+		$se = null; // atau kasih default
+		echo "<div class='alert alert-danger'>Section '$section' tidak ditemukan.</div>";
+	}
+
 
 	$sql2="select * from users where state='approver' order by section,name";
 	$q2=mysqli_query($link, $sql2);

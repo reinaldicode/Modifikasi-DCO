@@ -237,9 +237,12 @@ if (isset($_GET['submit'])){
 // 		 and (con.status='Contract' or con.status='Waiting' or con.status='Expired')
 
 
-$dev=$_GET['device'];
-$proc=$_GET['proc'];
-$status=$_GET['status'];
+$dev    = isset($_GET['device']) ? $_GET['device'] : '';
+$proc   = isset($_GET['proc']) ? $_GET['proc'] : '';
+$status = isset($_GET['status']) ? $_GET['status'] : '';
+$cat    = isset($_GET['cat']) ? $_GET['cat'] : '';
+$by     = isset($_GET['by']) ? $_GET['by'] : 'no_drf'; // default order by
+
 
 if ($proc=='-'){$sql="select * from docu where device='$dev' and doc_type='Monitor Sample' and status='$status' and category='$cat'   order by $by ";}
 else {
