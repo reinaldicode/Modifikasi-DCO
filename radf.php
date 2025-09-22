@@ -20,7 +20,7 @@
       <script src="bootstrap/js/jquery.min.js"></script>
           <script src="bootstrap/js/bootstrap-datepicker.js"></script>
           <style type="text/css">
-                  .container-non-responsive {
+                .container-non-responsive {
           margin-left: auto;
           margin-right: auto;
           padding-left: 15px;
@@ -38,11 +38,30 @@
     extract($_REQUEST);
     $sql_doc="select docu.*,users.name from docu,users where no_drf='$drf' and docu.user_id=users.username";
     $hasil_doc=mysqli_query($link, $sql_doc);
-    // $sql_doc;
+    //  $sql_doc;
+
+    // ==========================================================
+    // BAGIAN YANG DIPERBAIKI: Inisialisasi variabel dengan nilai default
+    // Ini untuk mencegah error "Undefined variable" jika query tidak menemukan data
+    // ==========================================================
+    $drf_val = isset($drf) ? $drf : ''; // Simpan nilai drf dari request
+    $tanggal = '';
+    $no_doc = '';
+    $title = '';
+    $rev = '';
+    $nama = '';
+    $iso = '';
+    $seqtrain = '';
+    $dirtrain = '';
+    $type = '';
+    $hist = '';
+    $rev_to = '';
+    $file = '';
+    $history = '';
 
     while ($data_doc=mysqli_fetch_array ($hasil_doc))
     {
-      $drf=$data_doc['no_drf'];
+      $drf_val=$data_doc['no_drf']; // Gunakan nama variabel berbeda agar tidak bentrok
       $tanggal=$data_doc['tgl_upload'];
       $no_doc=$data_doc['no_doc'];
       $title=$data_doc['title'];
@@ -63,16 +82,6 @@
       <h4 text-align: center>REVIEW AND APPROVAL DOCUMENT FORM (RADF)</h4>
     </div>
     <div class="col-xs-3">
-      <!-- <table border="">
-        <tr>
-          <td>Document No. &nbsp; <?php echo $no_doc; ?></td>
-          
-        </tr>
-        <tr><td>Rev. No <?php echo $rev; ?></td></tr>
-        <tr>
-          <td> Eff. Date  <?php echo $tanggal; ?></td>
-        </tr>
-      </table> -->    
     </div>
   </div>
 
@@ -82,7 +91,7 @@
       <table  class=""style="width: 900px; float:left;" border="0"  cellpadding="" cellspacing="" width="" >
         <tr>
           <td>No. Drf</td><td> : </td>
-          <td><a href="document/<?php echo "$file"; ?>" target="_blank">&nbsp;<?php echo $drf; ?> </a></td>
+          <td><a href="document/<?php echo $file; ?>" target="_blank">&nbsp;<?php echo $drf_val; ?> </a></td>
         </tr>
         <tbody>
           <tr>
@@ -284,7 +293,7 @@
               </td>
             </tr>
             <tr>
-              <td>                  
+              <td>                           
                 <?php 
                   $sql_head="SELECT users.name, users.section, rev_doc.status, rev_doc.tgl_approve FROM users, rev_doc WHERE rev_doc.id_doc ='$drf' AND users.username = rev_doc.nrp and (level=3)";
                   // echo $sql_head;
