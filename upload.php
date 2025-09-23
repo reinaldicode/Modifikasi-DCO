@@ -291,7 +291,7 @@ include 'koneksi.php';
 										<option value="-"> --- Select Section --- </option>
 										<?php while($data_sec = mysqli_fetch_array( $sql_sect )) 
 										{ ?>
-										<option value="<?php echo "$data_sec[id_section]"; ?>"> <?php echo "$data_sec[sect_name]"; ?> </option>
+										<option value="<?php echo $data_sec['sect_name']; ?>"> <?php echo $data_sec['sect_name']; ?> </option>
 										<?php } ?>
 										</option>
 									</select>
