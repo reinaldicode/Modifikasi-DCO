@@ -1,8 +1,3 @@
-
-
-	
-	
-	
 	<link href="bootstrap/css/bootstrap.min.css" media="all" type="text/css" rel="stylesheet">
 		<link href="bootstrap/css/bootstrap-responsive.min.css" media="all" type="text/css" rel="stylesheet">
 		<link href="bootstrap/css/facebook.css" media="all" type="text/css" rel="stylesheet">
@@ -16,13 +11,7 @@
         <link rel="stylesheet" href="bootstrap/css/bootstrap.css">
 		 <script src="bootstrap/js/jquery.min.js"></script>
         <script src="bootstrap/js/bootstrap-datepicker.js"></script>
-
-	
-	
 </head>
-
-
-
 
 
 <?php
@@ -74,11 +63,6 @@ extract($_REQUEST);
 
 <?php
 if (isset($_GET['submit'])){
-
-
-
-
-
 $section=$_GET['section'];
 
 $status=$_GET['status'];
@@ -166,8 +150,6 @@ while($info = mysqli_fetch_array($res))
 <div>
 <?php 
 $i++;} 
-
-
 }
 
 
