@@ -1,9 +1,21 @@
 <?php
-
 include 'header.php';
 include 'koneksi.php';
-error_reporting(E_ERROR | E_WARNING | E_PARSE | E_NOTICE);
+
+// Tangkap 'drf' dan variabel lain dari URL (GET)
+$drf = isset($_GET['drf']) ? (int)$_GET['drf'] : 0;
+$no_doc = isset($_GET['no_doc']) ? $_GET['no_doc'] : '';
+$type = isset($_GET['type']) ? $_GET['type'] : '';
+
+// Tambahkan validasi sederhana
+if ($drf == 0) {
+    die("Error: DRF tidak valid atau tidak ditemukan.");
+}
+
+// error_reporting(E_ERROR | E_WARNING | E_PARSE | E_NOTICE); // Sebaiknya jangan sembunyikan semua error saat development
 ?>
+
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 
@@ -23,7 +35,10 @@ error_reporting(E_ERROR | E_WARNING | E_PARSE | E_NOTICE);
                 	<td bgcolor="#E8E8E8"><span class="input-group-addon">Reason</span></td>
                 	<td width="10" align="center" bgcolor="#E8E8E8">:</td>
                 	<td bordercolorlight="#0000FF" bgcolor="#E8E8E8"><textarea  class="form-control" name="reason" cols="40" rows="10" wrap="physical"></textarea>
-                	<td><input type='hidden' name='no_doc' id='no_doc' value='<?php echo $no_doc;?>' ></input></td>
+					
+                	<td>
+						<input type='hidden' name='drf' value='<?php echo htmlspecialchars($drf); ?>' />
+						<input type='hidden' name='no_doc' id='no_doc' value='<?php echo $no_doc;?>' ></input></td>
 						<td><input type='hidden' name='type' id='type' value='<?php echo $type;?>' ></input></td>
 						<td><input type='hidden' name='name_app' id='name_app' value='<?php echo $name;?>' ></input></td>
                     </td>
@@ -83,7 +98,7 @@ if (isset($_POST['submit'])){
 			$res3=mysqli_query($link, $sql3)or die(mysqli_error());  
 			mysqli_num_rows($res3);
 
-			if ($res2>0){	 
+			if (mysqli_num_rows($res2) > 0 || mysqli_num_rows($res3) > 0) {	 
 
 			while ($data2=mysqli_fetch_row($res2))
 			{
