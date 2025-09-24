@@ -6,9 +6,6 @@
   <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-
-  
   <link href="bootstrap/css/bootstrap.min.css" media="all" type="text/css" rel="stylesheet">
     <link href="bootstrap/css/bootstrap-responsive.min.css" media="all" type="text/css" rel="stylesheet">
     <link href="bootstrap/css/facebook.css" media="all" type="text/css" rel="stylesheet">
@@ -47,14 +44,6 @@ body {
 </head>
 
 <body>
-
-
-  
-
-
-
-
-
   <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container-fluid">
     <!-- Brand and toggle get grouped for better mobile display -->
@@ -68,18 +57,18 @@ body {
       <span class="navbar-brand" href="index.php"><h3>Document Control Online</h3></span>
 
       <ul class="nav navbar-nav">
-        
         <li><a href="index.php" class=""><img src="images/home.png" class="img-responsive" alt="Responsive image"></img>Home</a></li>
-    <li><a href="procedure_awal.php" class="bg-success"><img src="images/document.png"><br />Procedure</a></li>
-    <li><a href="wi_awal.php" ><img src="images/doc2.png"><br />WI</a></li>   
-    <li><a href="form_awal.php" class="bg-success"><img src="images/doc3.png"><br />Form</a></li>
-    <li><a href="mon_awal.php" ><img src="images/report.png"><br />Monitor Sample</a></li>
-    <!-- <li><a href="msds_awal.php" class="bg-success"><img src="images/document.png"><br />MSDS</a></li>    -->
-    <li><a href="search_awal.php" class="bg-success"><img src="images/search3.png"><br />Search</a></li>
+        <li><a href="dokawal.php" ><img src="images/doc-21.png"><br />DocoLine</a></li>
+        <!-- <li><a href="procedure_awal.php" class="bg-success"><img src="images/document.png"><br />Procedure</a></li>    
+        
+        <li><a href="wi_awal.php" ><img src="images/doc2.png"><br />WI</a></li>    -->
+        <!-- <li><a href="form_awal.php" class="bg-success"><img src="images/doc3.png"><br />Form</a></li> -->
+        <li><a href="mon_awal.php" ><img src="images/report.png"><br />Monitor Sample</a></li> 
+        <!-- <li><a href="msds_awal.php" class="bg-success"><img src="images/document.png"><br />MSDS</a></li>    -->
+        <li><a href="search_awal.php" class="bg-success"><img src="images/search3.png"><br />Search</a></li>
 
-        <li class="pull-right"><a href="login.php" ><img src="images/login.png" class="img-responsive" alt="Responsive image"> &nbsp;Login</a></li>
+    <li class="pull-right"><a href="login.php" ><img src="images/login.png" class="img-responsive" alt="Responsive image"> &nbsp;Login</a></li>
         </ul>
-
 
     </div>
     <br />
@@ -96,14 +85,5 @@ body {
     </div>
   </div>
 </nav>
-
-
-
 <br />
 <br />
-
-
-    
-  
-  
-  
