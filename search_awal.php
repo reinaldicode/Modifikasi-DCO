@@ -1,280 +1,329 @@
 <?php
+// search_awal.php
+// Filter: no_doc, title, no_drf, doc_type (dropdown).
+// Pagination with per-page buttons (10,20,50,All).
+// Table transparan, header sticky, pagination tetap di bawah.
 
-include('index.php');
-// include('func.php');
-?>
-
-<br />
-<br />
-<br />
-<br />
-
-
-
-
-	
-	
-	
-	<link href="bootstrap/css/bootstrap.min.css" media="all" type="text/css" rel="stylesheet">
-		<link href="bootstrap/css/bootstrap-responsive.min.css" media="all" type="text/css" rel="stylesheet">
-		<link href="bootstrap/css/facebook.css" media="all" type="text/css" rel="stylesheet">
-		
-		<script src="bootstrap/js/bootstrap.min.js"></script>
-		<script src="bootstrap/js/bootstrap-dropdown.js"></script>
-		<script src="bootstrap/js/facebook.js"></script>
-	
-	<link rel="stylesheet" href="bootstrap/css/datepicker.css">
-	<link rel="stylesheet" href="bootstrap/css/bootstrap-select.min.css">
-        <link rel="stylesheet" href="bootstrap/css/bootstrap.css">
-		 <script src="bootstrap/js/jquery.min.js"></script>
-        <script src="bootstrap/js/bootstrap-datepicker.js"></script>
-        <script type="text/javascript" src="js/jquery.min.js"></script>
-		<script type="text/javascript" src="js/script.js"></script>
-		<style type="text/css">
-		.auto-complete{
-			float:left;
-			z-index:9999;
-		}
-		</style>
-	
-	
-</head>
-
-
-
-
-
-<?php
-
-//include 'index.php';
+include('index.php');    // header / session bila perlu
 include 'koneksi.php';
-
- ?>
-    
-    
-
-
-	 <?php require_once('Connections/config.php'); ?>
-<?php
-if (!function_exists("GetSQLValueString")) {
-function GetSQLValueString($theValue, $theType, $theDefinedValue = "", $theNotDefinedValue = "") 
-{
-  if (PHP_VERSION < 6) {
-    $theValue = get_magic_quotes_gpc() ? stripslashes($theValue) : $theValue;
-  }
-
-  $theValue = function_exists("mysql_real_escape_string") ? mysqli_real_escape_string($theValue) : mysql_escape_string($theValue);
-
-  switch ($theType) {
-    case "text":
-      $theValue = ($theValue != "") ? "'" . $theValue . "'" : "NULL";
-      break;    
-    case "long":
-    case "int":
-      $theValue = ($theValue != "") ? intval($theValue) : "NULL";
-      break;
-    case "double":
-      $theValue = ($theValue != "") ? doubleval($theValue) : "NULL";
-      break;
-    case "date":
-      $theValue = ($theValue != "") ? "'" . $theValue . "'" : "NULL";
-      break;
-    case "defined":
-      $theValue = ($theValue != "") ? $theDefinedValue : $theNotDefinedValue;
-      break;
-  }
-  return $theValue;
-}
-}
-
-//mysql_select_db($database_config, $config);
-$query_rsData = "SELECT distinct no_doc FROM docu ORDER BY no_doc ASC";
-$rsData = mysqli_query($link, $query_rsData) or die(mysqli_error());
-$row_rsData = mysqli_fetch_assoc($rsData);
-$totalRows_rsData = mysqli_num_rows($rsData);
-
-//mysql_select_db($database_config, $config);
-$query_title = "SELECT distinct title FROM docu ORDER BY title ASC";
-$title = mysqli_query($link, $query_title) or die(mysqli_error());
-$row_title = mysqli_fetch_assoc($title);
-$totalRows_title = mysqli_num_rows($title);
+require_once('Connections/config.php');
 ?>
-
 <!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Search Awal</title>
+  <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* ===== UI ===== */
+    .search-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 6px 20px rgba(31,45,61,0.08);
+      margin-bottom: 18px;
+    }
+    .controls { margin-top: 10px; }
+    .btn-perpage .btn { margin-right:6px; }
+    .badge-info-custom {
+      background: linear-gradient(90deg,#0d6efd,#6610f2);
+      color: #fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight:600;
+    }
+    .muted-small { font-size: 12px; color:#6c757d; }
+    .perpage-active { box-shadow: inset 0 -3px 0 rgba(0,0,0,0.08); }
+    .pagination > li > a, .pagination > li > span { border-radius:6px; }
+    .search-input .input-group-addon { background: #fff; border-right:0; }
+    .search-input .form-control { border-left:0; }
 
-<meta charset="utf-8">
+    /* ===== Table ===== */
+    .table-modern {
+      width: 100%;
+      background: transparent; /* transparan */
+    }
+    .table-modern thead {
+      background: #f8f9fa;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .table-modern tbody tr:hover { background: rgba(0,0,0,0.03); }
 
-<link rel="stylesheet" href="jquery-ui-1.10.3/themes/base/jquery.ui.all.css">
-	<script src="jquery-ui-1.10.3/jquery-1.9.1.js"></script>
-	<script src="jquery-ui-1.10.3/ui/jquery.ui.core.js"></script>
-	<script src="jquery-ui-1.10.3/ui/jquery.ui.widget.js"></script>
-	<script src="jquery-ui-1.10.3/ui/jquery.ui.position.js"></script>
-	<script src="jquery-ui-1.10.3/ui/jquery.ui.menu.js"></script>
-	<script src="jquery-ui-1.10.3/ui/jquery.ui.autocomplete.js"></script>
-  
-    <link rel="stylesheet" href="js/a.js" />
-    <script src="js/b.js"></script>
-    <script src="js/c.js"></script>
- 
-    <script>
+    @media(max-width:767px){
+      .search-card { padding:12px; }
+      .controls .btn { margin-bottom:8px; }
+    }
+  </style>
+</head>
+<body>
+<br/><br/>
 
-    </script>
+<div class="container">
+  <div class="search-card">
+    <h4 style="margin-top:0">Search Dokumen <small class="muted-small">(No Doc, Title, No. Drf, Type)</small></h4>
 
+    <?php
+    // Ambil daftar doc_type untuk dropdown
+    $types = [];
+    $qtypes = "SELECT DISTINCT doc_type FROM docu WHERE doc_type IS NOT NULL AND doc_type <> '' ORDER BY doc_type";
+    $rtypes = mysqli_query($link, $qtypes);
+    if ($rtypes) {
+      while ($t = mysqli_fetch_assoc($rtypes)) {
+        $types[] = $t['doc_type'];
+      }
+      mysqli_free_result($rtypes);
+    }
+    $currentPerPage = isset($_GET['perPage']) ? $_GET['perPage'] : '20';
+    ?>
 
-<br />
-<br />
+    <!-- FORM -->
+    <form id="searchForm" method="GET" action="" class="form-horizontal">
+      <div class="row">
+        <div class="col-sm-6">
+          <div class="form-group search-input">
+            <label class="control-label">No Document</label>
+            <div class="input-group">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-folder-open"></span></span>
+              <input type="text" name="doc_no" class="form-control" value="<?php echo isset($_GET['doc_no']) ? htmlspecialchars($_GET['doc_no']) : ''; ?>" placeholder="e.g. DC-001">
+            </div>
+          </div>
 
-<div class="row">
-<div class="col-xs-4" style="margin-left=50px;">
-  
-  <form name="form1" method="GET" action="">
-    <p>
-      
-      Input Document No. : <input name="doc_no" type="text" id="cari" size="60" class="form-control">
-    </p>
-     <p>
-      
-      Input Document Title : <input name="title" type="text" id="title" size="60" class="form-control">
-    </p>
-	<p>
-		Document Status :
-		<select name="status" id="status" class="form-control">
-				
-		<option value="" selected="selected" >Select status</option>
-		<option value="Secured">Approved</option>
-		<option value="Obsolate">Obsolate</option>
-	</p>
-	<p>
-	</p>
-    <p>
-      <input type="submit" name="submit" id="submit" value="Show" class="btn btn-primary">
-      <input type="reset" name="submit2" id="submit2" value="Reset" class="btn btn-warning">
-    </p>
-  </form>
+          <div class="form-group search-input">
+            <label class="control-label">Title</label>
+            <div class="input-group">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-book"></span></span>
+              <input type="text" name="title" class="form-control" value="<?php echo isset($_GET['title']) ? htmlspecialchars($_GET['title']) : ''; ?>" placeholder="Masukkan kata kunci title">
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+          <div class="form-group search-input">
+            <label class="control-label">No. Drf</label>
+            <div class="input-group">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
+              <input type="text" name="no_drf" class="form-control" value="<?php echo isset($_GET['no_drf']) ? htmlspecialchars($_GET['no_drf']) : ''; ?>" placeholder="Nomor DRF">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="control-label">Type Document</label>
+            <select name="doc_type" class="form-control">
+              <option value="">-- Semua Type --</option>
+              <?php foreach ($types as $dt): ?>
+                <option value="<?php echo htmlspecialchars($dt); ?>" <?php if(isset($_GET['doc_type']) && $_GET['doc_type']==$dt) echo 'selected'; ?>>
+                  <?php echo htmlspecialchars($dt); ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls clearfix">
+        <input type="hidden" id="perPageInput" name="perPage" value="<?php echo htmlspecialchars($currentPerPage); ?>">
+        <button type="submit" name="submit" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Search</button>
+        <button type="button" id="resetBtn" class="btn btn-default"><span class="glyphicon glyphicon-refresh"></span> Reset</button>
+
+        <!-- per-page buttons -->
+        <div class="btn-perpage pull-right">
+          <div class="btn-group" role="group" aria-label="Per page">
+            <?php
+              $perOptions = ['10','20','50','all'];
+              foreach ($perOptions as $opt) {
+                $label = ($opt === 'all') ? 'All' : $opt;
+                $active = ($currentPerPage === $opt) ? ' perpage-active' : '';
+                echo '<button type="button" data-per="'.$opt.'" class="btn btn-sm btn-default'.$active.'">'.$label.'</button>';
+              }
+            ?>
+          </div>
+        </div>
+      </div>
+    </form>
   </div>
-  </div>
-
-
+</div>
 
 <?php
-mysqli_free_result($rsData);
-mysqli_free_result($title);
+if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
+  $doc_no = mysqli_real_escape_string($link, trim($_GET['doc_no'] ?? ''));
+  $title  = mysqli_real_escape_string($link, trim($_GET['title'] ?? ''));
+  $no_drf = mysqli_real_escape_string($link, trim($_GET['no_drf'] ?? ''));
+  $doc_type = mysqli_real_escape_string($link, trim($_GET['doc_type'] ?? ''));
+  $perPageRaw = $_GET['perPage'] ?? '20';
+
+  $whereParts = [];
+  if ($doc_no !== '') $whereParts[] = "no_doc LIKE '%$doc_no%'";
+  if ($title !== '')  $whereParts[] = "title LIKE '%$title%'";
+  if ($no_drf !== '') $whereParts[] = "no_drf LIKE '%$no_drf%'";
+  if ($doc_type !== '') $whereParts[] = "doc_type = '$doc_type'";
+  $where = (count($whereParts) > 0) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
+
+  $isAll = ($perPageRaw === 'all');
+  $perPage = $isAll ? 0 : (int)$perPageRaw;
+  if (!$isAll && $perPage <= 0) $perPage = 20;
+  $page = max(1, (int)($_GET['page'] ?? 1));
+  $offset = ($page - 1) * $perPage;
+
+  $countSql = "SELECT COUNT(*) AS total FROM docu $where";
+  $totalRows = (int)mysqli_fetch_assoc(mysqli_query($link, $countSql))['total'];
+
+  $sql = "SELECT * FROM docu $where ORDER BY no_drf";
+  if (!$isAll) $sql .= " LIMIT $offset,$perPage";
+  $res = mysqli_query($link, $sql);
+
+  function build_page_url($page_number) {
+    $params = $_GET;
+    $params['page'] = $page_number;
+    if (!isset($params['perPage'])) $params['perPage'] = '20';
+    return htmlspecialchars($_SERVER['PHP_SELF'] . '?' . http_build_query($params));
+  }
+
+  if ($totalRows > 0) {
+    $startRow = $isAll ? 1 : $offset + 1;
+    $endRow   = $isAll ? $totalRows : min($offset + $perPage, $totalRows);
+    echo '<div class="container">';
+    echo '<div class="alert alert-light" style="background:#fff;border:1px solid #e6eefc;">';
+    echo '<span class="badge-info-custom">Results</span> Menampilkan <strong>'.$startRow.'</strong> - <strong>'.$endRow.'</strong> dari <strong>'.$totalRows.'</strong>';
+    echo '</div>';
+    echo '</div>';
+  } else {
+    echo '<div class="container"><div class="alert alert-warning">Tidak ada hasil untuk filter tersebut.</div></div>';
+  }
 ?>
 
-<?php
-if (isset($_GET['submit']))
-{
-	$no_doc=$_GET['doc_no'];
-	$title=$_GET['title'];
-	$status=$_GET['status'];
+  <?php if ($totalRows > 0): ?>
+  <div id="resultsContainer" style="padding:0 15px;">
+    <div class="table-responsive">
+      <table class="table table-hover table-modern">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Date</th>
+            <th>No Document</th>
+            <th>No Rev.</th>
+            <th>No. Drf</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Type</th>
+            <th>Section</th>
+            <th>Device</th>
+            <th>Process</th>
+            <th>Action</th>
+            <th>Sosialisasi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php
+            $i = $isAll ? 1 : $offset + 1;
+            while ($row = mysqli_fetch_assoc($res)) {
+              // periksa apakah ada bukti sosialisasi
+              $has_sos = !empty($row['sos_file']);
+              
+              echo '<tr>';
+              echo '<td>'.$i.'</td>';
+              echo '<td>'.htmlspecialchars($row['tgl_upload']).'</td>';
+              echo '<td>'.htmlspecialchars($row['no_doc']).'</td>';
+              echo '<td>'.htmlspecialchars($row['no_rev']).'</td>';
+              echo '<td>'.htmlspecialchars($row['no_drf']).'</td>';
+              echo '<td><a href="'.htmlspecialchars($row['doc_type'].'/'.$row['file']).'">'.htmlspecialchars($row['title']).'</a></td>';
+              echo '<td>'.htmlspecialchars($row['status']).'</td>';
+              echo '<td>'.htmlspecialchars($row['doc_type']).'</td>';
+              echo '<td>'.htmlspecialchars($row['section']).'</td>';
+              echo '<td>'.htmlspecialchars($row['device']).'</td>';
+              echo '<td>'.htmlspecialchars($row['process']).'</td>';
+              echo '<td>
+					<a class="btn btn-xs btn-info" title="Lihat Detail" href="detail.php?drf='.urlencode($row['no_drf']).'&no_doc='.urlencode($row['no_doc']).'">
+						<span class="glyphicon glyphicon-search"></span>
+					</a>
+					<a class="btn btn-xs btn-primary" title="Lihat RADF" href="radf.php?drf='.urlencode($row['no_drf']).'">
+						<span class="glyphicon glyphicon-eye-open"></span>
+					</a>
+					</td>';
+					
+              // Kolom Sosialisasi
+              echo '<td>';
+              if ($has_sos) {
+                  echo '<a href="lihat_sosialisasi.php?drf='.urlencode($row['no_drf']).'" class="btn btn-xs btn-primary" title="Lihat Detail Sosialisasi">';
+                  echo '<span class="glyphicon glyphicon-file"></span>';
+                  echo '</a>';
+              } else {
+                  echo '<a href="lihat_sosialisasi.php?drf='.urlencode($row['no_drf']).'" class="btn btn-xs btn-default" title="Belum ada bukti sosialisasi">';
+                  echo '<span class="glyphicon glyphicon-file"></span>';
+                  echo '</a>';
+              }
+              echo '</td>';
+              
+              echo '</tr>';
+              $i++;
+            }
+            mysqli_free_result($res);
+          ?>
+        </tbody>
+      </table>
+    </div>
 
-	if ($title=='' AND $no_doc=='')
-	{
-		$sql="SELECT * FROM docu WHERE status = '$status' ORDER by no_drf";
-	}
-	elseif ($no_doc=='' AND $status=='')
-	{
-		$sql="SELECT * FROM docu WHERE title LIKE '%$title%' OR title LIKE '$title%' OR title LIKE '%$title' ORDER by title";
-	}
-	elseif ($title=='' AND $status=='')
-	{
-		// $sql="SELECT * FROM docu WHERE no_doc='$no_doc' ORDER by no_drf limit 150";
-		$sql="SELECT * FROM docu WHERE no_doc LIKE '%$no_doc%' OR no_doc LIKE '$no_doc%' OR no_doc LIKE '%$no_doc' ORDER by no_doc";
-	}
-	elseif ($title=='')
-	{
-		$sql="SELECT * FROM docu WHERE status = '$status' AND (no_doc LIKE '%$no_doc%' OR no_doc LIKE '$no_doc%' OR no_doc LIKE '%$no_doc') ORDER by no_drf";
-	}
-	elseif ($no_doc=='')
-	{
-		$sql="SELECT * FROM docu WHERE status = '$status' AND (title LIKE '%$title%' OR title LIKE '$title%' OR title LIKE '%$title') ORDER by title";
-	}
-	elseif ($status=='')
-	{
-		$sql="SELECT * FROM docu WHERE no_doc LIKE '%$no_doc%' OR no_doc LIKE '$no_doc%' OR no_doc LIKE '%$no_doc' AND (title LIKE '%$title%' OR title LIKE '$title%' OR title LIKE '%$title') ORDER by title";
-	}
-	if ($title<>'' AND $no_doc<>''AND $status<>'')
-	{
-		$sql="SELECT * FROM docu WHERE status = '$status' AND (no_doc LIKE '%$no_doc%' OR no_doc LIKE '$no_doc%' OR no_doc LIKE '%$no_doc') AND (title LIKE '%$title%' OR title LIKE '$title%' OR title LIKE '%$title') ORDER by no_drf";
-	}
-	// echo $sql;
+    <?php
+      if (!$isAll) {
+        $totalPages = ceil($totalRows / $perPage);
+        if ($totalPages > 1) {
+          echo '<nav><ul class="pagination justify-content-center">';
+          if ($page > 1) {
+            echo '<li><a href="'.build_page_url($page-1).'">Prev</a></li>';
+          }
+          $range = 2;
+          for ($p = max(1, $page - $range); $p <= min($totalPages, $page + $range); $p++) {
+            $active = ($p==$page)?' class="active"':'';
+            echo '<li'.$active.'><a href="'.build_page_url($p).'">'.$p.'</a></li>';
+          }
+          if ($page < $totalPages) {
+            echo '<li><a href="'.build_page_url($page+1).'">Next</a></li>';
+          }
+          echo '</ul></nav>';
+        }
+      }
+    ?>
+  </div>
+  <?php endif; ?>
+<?php } ?>
 
-	?>
-	<br />
+<script>
+(function(){
+  const form = document.getElementById('searchForm');
+  const resetBtn = document.getElementById('resetBtn');
+  const results = document.getElementById('resultsContainer');
+  const perPageInput = document.getElementById('perPageInput');
 
-	<?php
+  // Event untuk tombol perPage
+  document.querySelectorAll('.btn-perpage button').forEach(function(b){
+    b.addEventListener('click', function(){
+      const per = this.getAttribute('data-per');
+      if (per === 'all') {
+        if (!confirm('Menampilkan semua hasil dapat berat. Lanjutkan?')) return;
+      }
+      if (perPageInput) perPageInput.value = per;
+      document.querySelectorAll('.btn-perpage button').forEach(x => x.classList.remove('perpage-active'));
+      this.classList.add('perpage-active');
+      form.submit();
+    });
+  });
 
-	$res=mysqli_query($link, $sql);
-	?>
-	<table class="table table-hover">
-	<thead bgcolor="#00FFFF">
-	<tr>
-		<td>No</td>
-		<td>Date</td>
-		<td>No Document</td>
-		<td>No Rev.</td>
-		<td>No. Drf</td>
-		<td>Title</td>
-		<td>Status</td>
-		<td>Process</td>
-		<td>Section</td>
-		<td>Device</td>
-		<td>Detail</td>
-		
-		
-	</tr>
-	</thead>
-	<?php
-	$i=1;
-	while($info = mysqli_fetch_array($res)) 
-	{ ?>
-	<tbody>
-	<tr>
-		<td>
-			<?php echo $i; ?>
-		</td>
-		<td>
-			<?php echo "$info[tgl_upload]";?>
-		</td>
-		<td>
-			<?php echo "$info[no_doc]";?>
-		</td>
-		<td>
-			<?php echo "$info[no_rev]";?>
-		</td>
-		<td>
-			<?php echo "$info[no_drf]";?>
-		</td>
-		<td>
-		<?php if ($info['no_drf']>12967){$tempat=$info['doc_type'];} else {$tempat='document';}?>
-		<a href="<?php echo $tempat; ?>/<?php echo "$info[file]"; ?>" >
-			<?php echo "$info[title]";?>
-			</a>
-		</td>
-		<td>
-			<?php echo "$info[status]";?>
-		</td>
-		<td>
-			<?php echo "$info[process]";?>
-		</td>
-		<td>
-			<?php echo "$info[section]";?>
-		</td>
-		<td>
-			<?php echo "$info[device]";?>
-		</td>
-		<td>		
-			<a href="detail.php?drf=<?php echo $info['no_drf'];?>&no_doc=<?php echo $info['no_doc'];?>&log=1" class="btn btn-xs btn-info" title="lihat detail"><span class="glyphicon glyphicon-search" ></span> </a>
-			<a href="radf.php?drf=<?php echo $info['no_drf'];?>&section=<?php echo $info['section']?>" class="btn btn-xs btn-info" title="lihat RADF"><span class="glyphicon glyphicon-eye-open" ></span> </a>
-		
-		</td>
-	</tr>
-	</tbody>
-	<div>
-	<?php 
-	$i++;} 
-}
+  // Reset button
+  if (resetBtn && form) {
+    resetBtn.addEventListener('click', function(){
+      form.querySelectorAll('input[type="text"]').forEach(i => i.value='');
+      form.querySelectorAll('select').forEach(s => s.selectedIndex=0);
+      if (perPageInput) perPageInput.value = '20';
+      if (results) results.style.display = 'none';
+      if (window.history && history.replaceState) {
+        const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+        history.replaceState({}, '', cleanUrl);
+      }
+    });
+  }
+})();
+</script>
 
-
-?> 
-</div>
+</body>
+</html>
