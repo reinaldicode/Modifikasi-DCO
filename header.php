@@ -4,21 +4,7 @@
 <script src="bootstrap/js/bootstrap.min.js"></script>
 <script src="bootstrap/js/bootstrap-dropdown.js"></script> ```
 
-<!-- File `bootstrap.min.js` adalah paket lengkap yang **sudah berisi semua** fungsionalitas JavaScript Bootstrap, termasuk untuk dropdown. Memuat file `bootstrap-dropdown.js` secara terpisah setelahnya seringkali tidak diperlukan untuk versi Bootstrap 3 dan bisa menyebabkan konflik, sehingga event "klik" pada dropdown tidak berfungsi.
 
-### Solusi
-
-Solusinya sangat sederhana: **Hapus baris yang memuat `bootstrap-dropdown.js`**. File `bootstrap.min.js` sudah cukup untuk menangani semuanya.
-
----
-
-### Kode `header.php` Lengkap yang Telah Diperbaiki
-
-Berikut adalah kode lengkap `header.php` Anda dengan perbaikan tersebut. Saya hanya menghapus satu baris JavaScript yang bermasalah. Struktur dan tampilan lainnya tetap sama persis seperti yang Anda inginkan.
-
-Silakan ganti seluruh isi file Anda dengan kode ini.
-
-```php -->
 <?php
 // session_start();
 include 'session.php';

@@ -58,7 +58,7 @@ body {
 
       <ul class="nav navbar-nav">
         <li><a href="index.php" class=""><img src="images/home.png" class="img-responsive" alt="Responsive image"></img>Home</a></li>
-        <li><a href="dokawal.php" ><img src="images/doc-21.png"><br />DocoLine</a></li>
+        <li><a href="dokawal.php" ><img src="images/doc-21.png"><br />Documents</a></li>
         <!-- <li><a href="procedure_awal.php" class="bg-success"><img src="images/document.png"><br />Procedure</a></li>    
         
         <li><a href="wi_awal.php" ><img src="images/doc2.png"><br />WI</a></li>    -->
