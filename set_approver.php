@@ -49,7 +49,7 @@ if ($q2) {
                 <td>
                 <span class='input-group-addon2'>
                 <input type='checkbox' name='item[]' id='item[]' 
-                    value='".htmlspecialchars($row2['username'])."|".htmlspecialchars($row2['name'])."|".htmlspecialchars($row2['email'])."'>
+                    value='".htmlspecialchars($row2['username'])."|".htmlspecialchars($row2['name'])."|".htmlspecialchars($row2['email'])."|".htmlspecialchars($row2['section'])."'>
                 </td>
                 <td>".htmlspecialchars($row2['name'])." &nbsp;</td>
                 <td>".htmlspecialchars($row2['section'])." &nbsp;</td>
@@ -96,31 +96,55 @@ if (isset($_POST['save'])){
                 $id    = $_POST["item"][$i];
                 $pecah = explode('|', $id);
 
-                if (count($pecah) >= 3) {
+                if (count($pecah) >= 4) {
                     $id_user = $pecah[0];
-                    $sql_in  = "INSERT INTO rev_doc(id,id_doc,nrp,status,tgl_approve,reason) 
-                                VALUES (0,'$id_doc','$id_user','Review','-','')";
+                    $user_name = $pecah[1];
+                    $user_email = $pecah[2];
+                    $user_section = $pecah[3];
+                    
+                    // **NEW: Insert dengan snapshot data approver**
+                    $sql_in  = "INSERT INTO rev_doc(id,id_doc,nrp,reviewer_name,reviewer_section,status,tgl_approve,reason) 
+                                VALUES (0,'$id_doc','$id_user','$user_name','$user_section','Review','-','')";
                     mysqli_query($link, $sql_in); 
-                    $mail->AddAddress($pecah[2], $pecah[1]);
+                    $mail->AddAddress($user_email, $user_name);
                 }
             }
         }
 
-        // tambahan approver default berdasarkan type dan iso
+        // tambahan approver default berdasarkan type dan iso dengan snapshot
         if ($type=="Procedure" && $iso==1){
-            mysqli_query($link, "INSERT INTO rev_doc(id,id_doc,nrp,status,tgl_approve,reason) 
-                                 VALUES ('','$id_doc','000043','Review','-','')");
-            $mail->AddAddress("nurdin@ssi.sharp-world.com","Kosnurdin");
+            // Get current data for snapshot
+            $snap_query = "SELECT name, section FROM users WHERE username='000043'";
+            $snap_result = mysqli_query($link, $snap_query);
+            $snap_data = mysqli_fetch_array($snap_result);
+            $snap_name = isset($snap_data['name']) ? $snap_data['name'] : 'Kosnurdin';
+            $snap_section = isset($snap_data['section']) ? $snap_data['section'] : 'QA Section';
+            
+            mysqli_query($link, "INSERT INTO rev_doc(id,id_doc,nrp,reviewer_name,reviewer_section,status,tgl_approve,reason) 
+                                 VALUES ('','$id_doc','000043','$snap_name','$snap_section','Review','-','')");
+            $mail->AddAddress("nurdin@ssi.sharp-world.com",$snap_name);
         }
         if ($type=="Procedure" && $iso==2){
-            mysqli_query($link, "INSERT INTO rev_doc(id,id_doc,nrp,status,tgl_approve,reason) 
-                                 VALUES ('','$id_doc','gzbs103181','Review','-','')");
-            $mail->AddAddress("ikhsandio@ssi.sharp-world.com","T. Takatahara");
+            $snap_query = "SELECT name, section FROM users WHERE username='gzbs103181'";
+            $snap_result = mysqli_query($link, $snap_query);
+            $snap_data = mysqli_fetch_array($snap_result);
+            $snap_name = isset($snap_data['name']) ? $snap_data['name'] : 'T. Takatahara';
+            $snap_section = isset($snap_data['section']) ? $snap_data['section'] : 'Accounting Section';
+            
+            mysqli_query($link, "INSERT INTO rev_doc(id,id_doc,nrp,reviewer_name,reviewer_section,status,tgl_approve,reason) 
+                                 VALUES ('','$id_doc','gzbs103181','$snap_name','$snap_section','Review','-','')");
+            $mail->AddAddress("ikhsandio@ssi.sharp-world.com",$snap_name);
         }
         if ($type=="Procedure" && $iso==3){
-            mysqli_query($link, "INSERT INTO rev_doc(id,id_doc,nrp,status,tgl_approve,reason) 
-                                 VALUES ('','$id_doc','000032','Review','-','')");
-            $mail->AddAddress("ikhsandio@ssi.sharp-world.com","Ridwan W.");
+            $snap_query = "SELECT name, section FROM users WHERE username='000032'";
+            $snap_result = mysqli_query($link, $snap_query);
+            $snap_data = mysqli_fetch_array($snap_result);
+            $snap_name = isset($snap_data['name']) ? $snap_data['name'] : 'Ridwan W.';
+            $snap_section = isset($snap_data['section']) ? $snap_data['section'] : 'Production Section';
+            
+            mysqli_query($link, "INSERT INTO rev_doc(id,id_doc,nrp,reviewer_name,reviewer_section,status,tgl_approve,reason) 
+                                 VALUES ('','$id_doc','000032','$snap_name','$snap_section','Review','-','')");
+            $mail->AddAddress("ikhsandio@ssi.sharp-world.com",$snap_name);
         }
 
         $mail->Subject  = "Document to Review";
