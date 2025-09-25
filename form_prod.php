@@ -291,7 +291,7 @@ while($info = mysqli_fetch_array($res))
 	<a href="radf.php?drf=<?php echo $info['no_drf'];?>&section=<?php echo $info['section']?>" class="btn btn-xs btn-info" title="lihat RADF"><span class="glyphicon glyphicon-eye-open" ></span> </a>	
 	<?php if ($state=='Admin' or ($state=="Originator" and $info['user_id']==$nrp)){?>
 	<a href="edit_doc.php?drf=<?php echo $info['no_drf'];?>" class="btn btn-xs btn-primary" title="Edit Doc"><span class="glyphicon glyphicon-pencil" ></span> </a>
-	<a href="del_doc.php?drf=<?php echo $info['no_drf'];?>" class="btn btn-xs btn-danger" onClick="return confirm('Delete document <?php echo $info[no_doc]?>?')" title="Delete Doc"><span class="glyphicon glyphicon-remove" ></span> </a>
+	<a href="del_doc.php?drf=<?php echo $info['no_drf'];?>" class="btn btn-xs btn-danger" onClick="return confirm('Delete document <?php echo $info['no_doc']?>?')" title="Delete Doc"><span class="glyphicon glyphicon-remove" ></span> </a>
 	<?php if ($info['status']=='Secured') { ?>
 	
 	
