@@ -1,10 +1,3 @@
-<script src="bootstrap/js/jquery.min.js"></script>
-<script src="bootstrap/js/bootstrap-datepicker.js"></script>
-
-<script src="bootstrap/js/bootstrap.min.js"></script>
-<script src="bootstrap/js/bootstrap-dropdown.js"></script> ```
-
-
 <?php
 // session_start();
 include 'session.php';
@@ -20,17 +13,18 @@ extract($_REQUEST);
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-
- 
+  <!-- CSS Files -->
   <link href="bootstrap/css/bootstrap.min.css" media="all" type="text/css" rel="stylesheet">
     <link href="bootstrap/css/bootstrap-responsive.min.css" media="all" type="text/css" rel="stylesheet">
     <link href="bootstrap/css/facebook.css" media="all" type="text/css" rel="stylesheet">
-    
-    <script src="bootstrap/js/jquery.min.js"></script>
-    <script src="bootstrap/js/bootstrap.min.js"></script> <script src="bootstrap/js/bootstrap-datepicker.js"></script>
     <link rel="stylesheet" href="bootstrap/css/datepicker.css">
   <link rel="stylesheet" href="bootstrap/css/bootstrap-select.min.css">
         <link rel="stylesheet" href="bootstrap/css/bootstrap.css">
+
+  <!-- JavaScript Files - PROPER ORDER -->
+    <script src="bootstrap/js/jquery.min.js"></script>
+    <script src="bootstrap/js/bootstrap.min.js"></script>
+    <script src="bootstrap/js/bootstrap-datepicker.js"></script>
 
 <?php if (isset($name) && $name=='Vitria') {?>
   <style> 
@@ -51,9 +45,12 @@ body {
 </style>
   <?php } ?>
 
-
 <script type="text/javascript">
 $(document).ready(function () {
+    // Initialize dropdowns
+    $('.dropdown-toggle').dropdown();
+    
+    // Change password modal handler
     $('.chg-pass').click(function () {
         $('span.user-id').text($(this).data('user'));
         var usercp = $(this).data('usercp');
@@ -62,6 +59,11 @@ $(document).ready(function () {
         $(".modal-body #passcp").val( passcp );
         var title = $(this).data('title');
         $(".modal-body #title").val( title );
+    });
+    
+    // Fix for dropdowns in mobile
+    $('.navbar-toggle').click(function() {
+        $('.navbar-collapse').collapse('toggle');
     });
 });
 </script>
@@ -102,7 +104,7 @@ $(document).ready(function () {
   <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container-fluid">
     <div class="navbar-header">
-      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
@@ -122,18 +124,18 @@ $(document).ready(function () {
         <li><a <?php if (isset($state) && $state=='Approver' && $nrp<>'000043'){$href='#';} else {$href='upload.php';} ?> href="<?php echo $href;?>" class="bg-info mute" ><img src="images/up.png" alt="Upload"><br />Upload</a></li>
 
         <li class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                 <img src="images/document.png" alt="Documents"><br> Documents <span class="caret"></span>
             </a>
-            <ul class="dropdown-menu" role="menu">
+            <ul class="dropdown-menu">
                 <li><a href="procedure_login.php">Procedure</a></li>
                 <li><a href="wi_login.php">WI</a></li>
                 <li><a href="form_login.php">Form</a></li>
-                <li class="divider"></li>
+                <li role="separator" class="divider"></li>
                 <li><a href="MSROHS.php">MS & ROHS</a></li>
                 <li><a href="monitor_login.php">Sample</a></li>
                 <li><a href="msds_login.php">MSDS</a></li>
-                <li class="divider"></li>
+                <li role="separator" class="divider"></li>
                 <li><a href="manual.php">Manual</a></li>
                 <li><a href="obs_login.php">Obsolate</a></li>
             </ul>
