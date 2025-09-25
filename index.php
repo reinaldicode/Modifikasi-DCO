@@ -20,10 +20,9 @@
         <script src="bootstrap/js/respond.js"></script>
     <![endif]-->
      <script src="bootstrap/js/jquery.min.js"></script>
-        <script src="bootstrap/js/bootstrap-datepicker.js"></script>
-    
     <script src="bootstrap/js/bootstrap.min.js"></script>
     <script src="bootstrap/js/bootstrap-dropdown.js"></script>
+    <script src="bootstrap/js/bootstrap-datepicker.js"></script>
     
   
   <link rel="stylesheet" href="bootstrap/css/datepicker.css">
@@ -31,6 +30,13 @@
         <link rel="stylesheet" href="bootstrap/css/bootstrap.css">
     
         <script src="bootstrap/js/bootstrap-datepicker.js"></script>
+
+<script>
+$(document).ready(function(){
+    $('.dropdown-toggle').dropdown();
+});
+</script>
+
 <style> 
 body {
     background-image: url("images/white.jpeg");
@@ -58,7 +64,22 @@ body {
 
       <ul class="nav navbar-nav">
         <li><a href="index.php" class=""><img src="images/home.png" class="img-responsive" alt="Responsive image"></img>Home</a></li>
-        <li><a href="dokawal.php" ><img src="images/doc-21.png"><br />Documents</a></li>
+        
+        <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                <img src="images/document.png" alt="Documents"><br> Documents <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a href="dokawal.php">All Documents</a></li>
+                <li role="separator" class="divider"></li>
+                <li><a href="procedure_awal.php">Procedure</a></li>
+                <li><a href="wi_awal.php">WI</a></li>
+                <li><a href="form_awal.php">Form</a></li>
+                <li role="separator" class="divider"></li>
+                <!-- <li><a href="msds_awal.php">MSDS</a></li> -->
+            </ul>
+        </li>
+        
         <!-- <li><a href="procedure_awal.php" class="bg-success"><img src="images/document.png"><br />Procedure</a></li>    
         
         <li><a href="wi_awal.php" ><img src="images/doc2.png"><br />WI</a></li>    -->
@@ -86,4 +107,4 @@ body {
   </div>
 </nav>
 <br />
-<br />
+<br />  
