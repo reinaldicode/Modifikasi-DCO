@@ -234,9 +234,9 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
               echo '<td>'.htmlspecialchars($row['device']).'</td>';
               echo '<td>'.htmlspecialchars($row['process']).'</td>';
               echo '<td>
-					<a class="btn btn-xs btn-info" title="Lihat Detail" href="detail.php?drf='.urlencode($row['no_drf']).'&no_doc='.urlencode($row['no_doc']).'">
-						<span class="glyphicon glyphicon-search"></span>
-					</a>
+					<a class="btn btn-xs btn-info" title="Lihat Detail" href="detail.php?drf='.urlencode($row['no_drf']).'&no_doc='.urlencode($row['no_doc']).'&public=1">
+              <span class="glyphicon glyphicon-search"></span>
+          </a>
 					<a class="btn btn-xs btn-primary" title="Lihat RADF" href="radf.php?drf='.urlencode($row['no_drf']).'">
 						<span class="glyphicon glyphicon-eye-open"></span>
 					</a>
