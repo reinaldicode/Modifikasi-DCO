@@ -1,11 +1,59 @@
 <?php
 // lihat_sosialisasi.php
-session_start();
-error_reporting(E_ALL ^ (E_NOTICE | E_WARNING | E_DEPRECATED));
+// Perbaikan: Simplified session check & login protection
 
-if (file_exists('header.php')) include 'header.php';
+// START: Session check
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+// Debug session (hapus setelah testing)
+// var_dump($_SESSION); // uncomment untuk debug
+
+// Flexible session check - sesuaikan dengan sistem Anda
+$isLoggedIn = false;
+$user_state = '';
+$user_nrp = '';
+
+// Cek berbagai kemungkinan nama session variable
+if ((isset($_SESSION['state']) && !empty($_SESSION['state'])) || 
+    (isset($_SESSION['login']) && $_SESSION['login'] === true) ||
+    (isset($_SESSION['user']) && !empty($_SESSION['user'])) ||
+    (isset($_SESSION['username']) && !empty($_SESSION['username'])) ||
+    (isset($_SESSION['nrp']) && !empty($_SESSION['nrp']))) {
+    
+    $isLoggedIn = true;
+    $user_state = $_SESSION['state'] ?? ($_SESSION['role'] ?? 'User');
+    $user_nrp = $_SESSION['nrp'] ?? ($_SESSION['user'] ?? ($_SESSION['username'] ?? 'Unknown'));
+}
+
+// Jika masih belum login, coba include header.php dulu (mungkin ada auto-login)
+if (!$isLoggedIn) {
+    if (file_exists('header.php')) include 'header.php';
+    
+    // Cek lagi setelah include header
+    if ((isset($_SESSION['state']) && !empty($_SESSION['state'])) || 
+        (isset($_SESSION['nrp']) && !empty($_SESSION['nrp']))) {
+        $isLoggedIn = true;
+        $user_state = $_SESSION['state'] ?? 'User';
+        $user_nrp = $_SESSION['nrp'] ?? 'Unknown';
+    }
+} else {
+    // Jika sudah login, tetap include header.php untuk background
+    if (file_exists('header.php')) include 'header.php';
+}
+
+// Jika tetap belum login, redirect
+if (!$isLoggedIn) {
+    $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
+    header('Location: index_login.php'); // atau login.php
+    exit;
+}
+
+// Include koneksi setelah memastikan user sudah login
+if (!$isLoggedIn && file_exists('header.php')) include 'header.php';
 if (!file_exists('koneksi.php')) { die("koneksi.php tidak ditemukan."); }
 include 'koneksi.php';
+
+error_reporting(E_ALL ^ (E_NOTICE | E_WARNING | E_DEPRECATED));
 
 $uploadDir = __DIR__ . '/sosialisasi/';
 $webUploadDir = 'sosialisasi/';
@@ -37,12 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $file = $row['sos_file'];
             $uploaded_by = $row['sos_uploaded_by'];
 
-            $session_state = $_SESSION['state'] ?? '';
-            $session_nrp = $_SESSION['nrp'] ?? '';
-
             $allowed_to_delete = false;
-            if ($session_state === 'Admin') $allowed_to_delete = true;
-            if (!empty($session_nrp) && $session_nrp === $uploaded_by) $allowed_to_delete = true;
+            if ($user_state === 'Admin') $allowed_to_delete = true;
+            if (!empty($user_nrp) && $user_nrp === $uploaded_by) $allowed_to_delete = true;
 
             if (!$allowed_to_delete) {
                 $alert = "<div class='alert alert-danger'>Anda tidak mempunyai izin untuk menghapus file ini.</div>";
@@ -82,14 +127,8 @@ if (!$q || mysqli_num_rows($q) === 0) {
 $row = mysqli_fetch_assoc($q);
 $has_sos = !empty($row['sos_file']);
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Bukti Sosialisasi - DRF <?php echo htmlspecialchars($drf); ?></title>
-<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" />
-</head>
-<body>
+
+<br><br><br>
 <div class="container" style="padding-top:20px;">
     <h3>Bukti Sosialisasi untuk DRF: <strong><?php echo htmlspecialchars($drf); ?></strong></h3>
 
@@ -112,8 +151,6 @@ $has_sos = !empty($row['sos_file']);
     }
     </script>
 
-
-
     <?php if ($has_sos): 
         $fileUrl = $webUploadDir . rawurlencode($row['sos_file']);
     ?>
@@ -135,9 +172,8 @@ $has_sos = !empty($row['sos_file']);
                     <a class="btn btn-xs btn-success" href="<?php echo $fileUrl;?>" download="<?php echo htmlspecialchars($row['sos_file']); ?>" title="Download"><span class="glyphicon glyphicon-download"></span></a>
 
                     <?php
-                    $session_state = $_SESSION['state'] ?? '';
-                    $session_nrp = $_SESSION['nrp'] ?? '';
-                    if ($session_state === 'Admin' || (!empty($session_nrp) && $session_nrp === $row['sos_uploaded_by'])):
+                    // Cek permission untuk delete (Admin atau user yang upload)
+                    if ($user_state === 'Admin' || (!empty($user_nrp) && $user_nrp === $row['sos_uploaded_by'])):
                     ?>
                         <form method="post" style="display:inline-block;" onsubmit="return confirm('Hapus bukti ini?');">
                             <input type="hidden" name="csrf_token" value="<?php echo $csrf; ?>">
@@ -156,19 +192,28 @@ $has_sos = !empty($row['sos_file']);
 
     <hr />
     <h4>Replace bukti sosialisasi</h4>
-    <form action="upload_sosialisasi.php" method="post" enctype="multipart/form-data">
-        <input type="hidden" name="drf" value="<?php echo htmlspecialchars($drf); ?>">
-        <input type="hidden" name="csrf_token" value="<?php echo $csrf; ?>">
-        <div class="form-group">
-            <label>Pilih file (pdf/jpg/png). Max 10MB.</label>
-            <input type="file" name="sos_file" class="form-control" required>
+    
+    <?php if ($isLoggedIn): ?>
+        <form action="upload_sosialisasi.php" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="drf" value="<?php echo htmlspecialchars($drf); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo $csrf; ?>">
+            <div class="form-group">
+                <label>Pilih file (pdf/jpg/png). Max 10MB.</label>
+                <input type="file" name="sos_file" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Catatan / Keterangan (optional)</label>
+                <textarea name="notes" class="form-control" rows="2"></textarea>
+            </div>
+            <button class="btn btn-primary" type="submit">Upload Sosialisasi</button>
+        </form>
+    <?php else: ?>
+        <div class="alert alert-warning">
+            <strong>Info:</strong> Anda harus login terlebih dahulu untuk dapat mengupload bukti sosialisasi.
+            <br><br>
+            <a href="index_login.php" class="btn btn-primary">Login Sekarang</a>
         </div>
-        <div class="form-group">
-            <label>Catatan / Keterangan (optional)</label>
-            <textarea name="notes" class="form-control" rows="2"></textarea>
-        </div>
-        <button class="btn btn-primary" type="submit">Upload Sosialisasi</button>
-    </form>
+    <?php endif; ?>
 
 </div>
 
