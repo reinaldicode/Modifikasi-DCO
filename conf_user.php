@@ -1,4 +1,4 @@
-<?php
+	<?php
 
 include('header.php');
 include('config_head.php');
