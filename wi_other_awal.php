@@ -2,12 +2,6 @@
 extract($_REQUEST); ?>
 <br />
 
-
-
-
-
-
-
 <div class="row">
 
 <div class="col-xs-4 well well-lg">
@@ -81,10 +75,6 @@ extract($_REQUEST); ?>
  <?php
 if (isset($_GET['submit'])){
 
-
-
-
-
 $section=$_GET['section'];
 $status=$_GET['status'];
 
@@ -94,7 +84,6 @@ if ($section=='Engineering'){
 else {
 	$sql="select * from docu where section='$section' and doc_type='WI' and status='$status' and category='$category' order by $by";	
 }
-	
 	
 	// echo $sql;
 ?>
@@ -106,7 +95,6 @@ $res=mysqli_query($link, $sql);
 //$rows = mysql_num_rows($res);
 
 //echo $sql;
-
 
 ?>
 <br />
@@ -123,6 +111,7 @@ $res=mysqli_query($link, $sql);
 	<td>Process</td>
 	<td>Section</td>
 	<td>Action</td>
+	<td>Sosialisasi</td>
 	
 </tr>
 </thead>
@@ -136,35 +125,51 @@ while($info = mysqli_fetch_array($res))
 		<?php echo $i; ?>
 	</td>
 	<td>
-		<?php echo "$info[tgl_upload]";?>
+		<?php echo htmlspecialchars($info['tgl_upload']);?>
 	</td>
 	<td>
-		<?php echo "$info[no_doc]";?>
+		<?php echo htmlspecialchars($info['no_doc']);?>
 	</td>
 	<td>
-		<?php echo "$info[no_rev]";?>
+		<?php echo htmlspecialchars($info['no_rev']);?>
 	</td>
 	<td>
-		<?php echo "$info[no_drf]";?>
+		<?php echo htmlspecialchars($info['no_drf']);?>
 	</td>
 	<td>
 	<?php if ($info['no_drf']>12967){$tempat=$info['doc_type'];} else {$tempat='document';}?>
-	<a href="<?php echo $tempat; ?>/<?php echo "$info[file]"; ?>" >
-		<?php echo "$info[title]";?>
+	<a href="<?php echo htmlspecialchars($tempat); ?>/<?php echo htmlspecialchars($info['file']); ?>" >
+		<?php echo htmlspecialchars($info['title']);?>
 		</a>
 	</td>
 	<td>
-		<?php echo "$info[process]";?>
+		<?php echo htmlspecialchars($info['process']);?>
 	</td>
 	<td>
-		<?php echo "$info[section]";?>
+		<?php echo htmlspecialchars($info['section']);?>
 	</td>
 	<td>
-	<a href="detail.php?drf=<?php echo $info['no_drf'];?>&no_doc=<?php echo $info['no_doc'];?>&log=1" class="btn btn-xs btn-info" title="lihat detail"><span class="glyphicon glyphicon-search" ></span> </a>
+	<a href="detail.php?drf=<?php echo urlencode($info['no_drf']);?>&no_doc=<?php echo urlencode($info['no_doc']);?>&log=1" class="btn btn-xs btn-info" title="lihat detail"><span class="glyphicon glyphicon-search" ></span> </a>
 	
-	<a href="radf.php?drf=<?php echo $info['no_drf'];?>&section=<?php echo $info['section']?>&log=1" class="btn btn-xs btn-info" title="lihat RADF"><span class="glyphicon glyphicon-eye-open" ></span> </a>	
+	<a href="radf.php?drf=<?php echo urlencode($info['no_drf']);?>&section=<?php echo urlencode($info['section'])?>&log=1" class="btn btn-xs btn-info" title="lihat RADF"><span class="glyphicon glyphicon-eye-open" ></span> </a>	
 	
 	</td>
+	<td>
+        <?php 
+        // periksa apakah ada bukti sosialisasi
+        $has_sos = !empty($info['sos_file']);
+        
+        if ($has_sos) {
+            echo '<a href="lihat_sosialisasi.php?drf='.urlencode($info['no_drf']).'" class="btn btn-xs btn-primary" title="Lihat Detail Sosialisasi">';
+            echo '<span class="glyphicon glyphicon-file"></span>';
+            echo '</a>';
+        } else {
+            echo '<a href="lihat_sosialisasi.php?drf='.urlencode($info['no_drf']).'" class="btn btn-xs btn-default" title="Belum ada bukti sosialisasi">';
+            echo '<span class="glyphicon glyphicon-file"></span>';
+            echo '</a>';
+        }
+        ?>
+    </td>
 	
 	
 </tr>
@@ -177,4 +182,4 @@ $i++;}
 }
 
 
-?> 
+?>
