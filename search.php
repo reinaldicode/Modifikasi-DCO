@@ -1,5 +1,5 @@
 <?php
-// search.php (dimodifikasi agar tampil seperti search_awal.php)
+// search.php (dimodifikasi: hapus draft filter, pindah Month/Year ke atas, samakan warna results)
 // Siap-tempel — pastikan koneksi ($link) / header.php sesuai environment Anda.
 
 include('header.php');    // header / session bila perlu
@@ -84,7 +84,7 @@ require_once('Connections/config.php');
 
 <div class="container">
   <div class="search-card">
-    <h4 style="margin-top:0">Search Dokumen <small class="muted-small">(No Doc, Title, Employee ID, Type, Month, Year)</small></h4>
+    <h4 style="margin-top:0">Search Dokumen <small class="muted-small">(No Doc, Title, Employee ID, Type, Month, Year, DRF)</small></h4>
 
     <?php
     // Ambil daftar doc_type untuk dropdown (jika dibutuhkan)
@@ -99,6 +99,11 @@ require_once('Connections/config.php');
     }
 
     $currentPerPage = isset($_GET['perPage']) ? $_GET['perPage'] : '20';
+
+    // SORT parameter: 'oldest' (terlama ke terbaru) atau 'newest' (terbaru ke terlama)
+    // Default: 'oldest' sesuai permintaan Anda (terlama muncul di atas)
+    $currentSort = isset($_GET['sort']) ? $_GET['sort'] : 'oldest';
+    if (!in_array($currentSort, ['oldest','newest'])) $currentSort = 'oldest';
     ?>
 
     <!-- FORM -->
@@ -120,6 +125,15 @@ require_once('Connections/config.php');
               <input type="text" name="title" class="form-control" value="<?php echo isset($_GET['title']) ? htmlspecialchars($_GET['title']) : ''; ?>" placeholder="Masukkan kata kunci title">
             </div>
           </div>
+
+          <!-- DRF search (tetap di sini di kolom kiri) -->
+          <div class="form-group search-input">
+            <label class="control-label">DRF (No. DRF)</label>
+            <div class="input-group">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
+              <input type="text" name="drf" class="form-control" value="<?php echo isset($_GET['drf']) ? htmlspecialchars($_GET['drf']) : ''; ?>" placeholder="Masukkan no DRF (mis. 17246)">
+            </div>
+          </div>
         </div>
 
         <div class="col-sm-6">
@@ -131,18 +145,7 @@ require_once('Connections/config.php');
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="control-label">Type Document</label>
-            <select name="doc_type" class="form-control">
-              <option value="">-- Semua Type --</option>
-              <?php foreach ($types as $dt): ?>
-                <option value="<?php echo htmlspecialchars($dt); ?>" <?php if(isset($_GET['doc_type']) && $_GET['doc_type']==$dt) echo 'selected'; ?>>
-                  <?php echo htmlspecialchars($dt); ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-
+          <!-- Pindahkan Month & Year ke atas (di sini) -->
           <div class="row">
             <div class="col-sm-6 form-group">
               <label class="control-label">Month</label>
@@ -174,16 +177,30 @@ require_once('Connections/config.php');
             </div>
           </div>
 
+          <div class="form-group">
+            <label class="control-label">Type Document</label>
+            <select name="doc_type" class="form-control">
+              <option value="">-- Semua Type --</option>
+              <?php foreach ($types as $dt): ?>
+                <option value="<?php echo htmlspecialchars($dt); ?>" <?php if(isset($_GET['doc_type']) && $_GET['doc_type']==$dt) echo 'selected'; ?>>
+                  <?php echo htmlspecialchars($dt); ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
         </div>
       </div>
 
       <div class="controls clearfix">
         <input type="hidden" id="perPageInput" name="perPage" value="<?php echo htmlspecialchars($currentPerPage); ?>">
+        <!-- Sorting hidden input -->
+        <input type="hidden" id="sortInput" name="sort" value="<?php echo htmlspecialchars($currentSort); ?>">
         <button type="submit" name="submit" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Search</button>
         <button type="button" id="resetBtn" class="btn btn-default"><span class="glyphicon glyphicon-refresh"></span> Reset</button>
 
         <!-- per-page buttons -->
-        <div class="btn-perpage pull-right">
+        <div class="btn-perpage pull-right" style="margin-left:10px;">
           <div class="btn-group" role="group" aria-label="Per page">
             <?php
               $perOptions = ['10','20','50','all'];
@@ -195,6 +212,16 @@ require_once('Connections/config.php');
             ?>
           </div>
         </div>
+
+        <!-- Sort control -->
+        <div class="pull-right" style="margin-right:10px;">
+          <label style="display:inline-block;margin-right:8px;" class="muted-small">Sort</label>
+          <select id="sortSelect" class="form-control input-sm" style="display:inline-block;width:auto;">
+            <option value="oldest" <?php if($currentSort=='oldest') echo 'selected'; ?>>Oldest first (terlama → terbaru)</option>
+            <option value="newest" <?php if($currentSort=='newest') echo 'selected'; ?>>Newest first (terbaru → terlama)</option>
+          </select>
+        </div>
+
       </div>
     </form>
   </div>
@@ -202,7 +229,7 @@ require_once('Connections/config.php');
 
 <?php
 // Processing search jika submit
-if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
+if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page']) || isset($_GET['sort']) || isset($_GET['drf'])) {
   // sanitize
   $doc_no = isset($_GET['doc_no']) ? mysqli_real_escape_string($link, trim($_GET['doc_no'])) : '';
   $title  = isset($_GET['title']) ? mysqli_real_escape_string($link, trim($_GET['title'])) : '';
@@ -211,10 +238,14 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
   $bulan  = isset($_GET['bulan']) ? mysqli_real_escape_string($link, trim($_GET['bulan'])) : '00';
   $tahun  = isset($_GET['tahun']) ? mysqli_real_escape_string($link, trim($_GET['tahun'])) : '00';
   $perPageRaw = $_GET['perPage'] ?? '20';
+  $sort = isset($_GET['sort']) ? $_GET['sort'] : 'oldest';
+  if (!in_array($sort, ['oldest','newest'])) $sort = 'oldest';
+
+  // DRF search
+  $drf_search = isset($_GET['drf']) ? mysqli_real_escape_string($link, trim($_GET['drf'])) : '';
 
   $whereParts = [];
   if ($doc_no !== '') {
-    // original behavior: allow exact or like; we will use LIKE wildcard both sides
     $whereParts[] = "(no_doc LIKE '%$doc_no%')";
   }
   if ($title !== '') {
@@ -226,8 +257,11 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
   if ($doc_type !== '') {
     $whereParts[] = "(doc_type = '$doc_type')";
   }
+  if ($drf_search !== '') {
+    // search by no_drf (partial match)
+    $whereParts[] = "(no_drf LIKE '%$drf_search%')";
+  }
   if ($bulan !== '00' && $tahun !== '00') {
-    // tgl_upload format in original seems dd-mm-yyyy or dd/mm/yyyy so use substring approach used earlier: mid(tgl_upload,4,2) and right(tgl_upload,4)
     $whereParts[] = "(MID(tgl_upload,4,2) = '$bulan' AND RIGHT(tgl_upload,4) = '$tahun')";
   }
 
@@ -249,7 +283,10 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
   }
 
   // main query
-  $sql = "SELECT * FROM docu $where ORDER BY no_drf";
+  // Use STR_TO_DATE to sort by tgl_upload (format dd-mm-yyyy or dd/mm/yyyy)
+  // Replace slashes with hyphen first to make parsing consistent
+  $orderDir = ($sort === 'oldest') ? 'ASC' : 'DESC';
+  $sql = "SELECT * FROM docu $where ORDER BY STR_TO_DATE(REPLACE(tgl_upload,'/','-'), '%d-%m-%Y') $orderDir";
   if (!$isAll) $sql .= " LIMIT $offset,$perPage";
   $res = mysqli_query($link, $sql);
 
@@ -257,6 +294,7 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
     $params = $_GET;
     $params['page'] = $page_number;
     if (!isset($params['perPage'])) $params['perPage'] = '20';
+    if (!isset($params['sort'])) $params['sort'] = 'oldest';
     return htmlspecialchars($_SERVER['PHP_SELF'] . '?' . http_build_query($params));
   }
 
@@ -264,12 +302,14 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
     $startRow = $isAll ? 1 : $offset + 1;
     $endRow   = $isAll ? $totalRows : min($offset + $perPage, $totalRows);
     echo '<div class="container">';
-    echo '<div class="alert alert-light" style="background:#fff;border:1px solid #e6eefc;">';
+    // gunakan same card style seperti search
+    echo '<div class="search-card">';
     echo '<span class="badge-info-custom">Results</span> Menampilkan <strong>'.$startRow.'</strong> - <strong>'.$endRow.'</strong> dari <strong>'.$totalRows.'</strong>';
+    echo ' &nbsp; <small class="muted-small">Sort: '.htmlspecialchars(($sort==='oldest'?'Oldest first':'Newest first')).'</small>';
     echo '</div>';
     echo '</div>';
   } else {
-    echo '<div class="container"><div class="alert alert-warning">Tidak ada hasil untuk filter tersebut.</div></div>';
+    echo '<div class="container"><div class="search-card"><div class="alert alert-warning" style="margin:0;border:none;background:transparent;">Tidak ada hasil untuk filter tersebut.</div></div></div>';
   }
 ?>
 
@@ -501,6 +541,18 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
   const resetBtn = document.getElementById('resetBtn');
   const results = document.getElementById('resultsContainer');
   const perPageInput = document.getElementById('perPageInput');
+  const sortInput = document.getElementById('sortInput');
+  const sortSelect = document.getElementById('sortSelect');
+
+  // Set initial sortInput from select
+  if (sortSelect && sortInput) {
+    sortInput.value = sortSelect.value;
+    sortSelect.addEventListener('change', function(){
+      sortInput.value = this.value;
+      // submit otomatis saat ganti sort (opsional)
+      form.submit();
+    });
+  }
 
   // Event untuk tombol perPage
   document.querySelectorAll('.btn-perpage button').forEach(function(b){
@@ -538,6 +590,8 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
       form.querySelectorAll('input[type="text"]').forEach(i => i.value='');
       form.querySelectorAll('select').forEach(s => s.selectedIndex=0);
       if (perPageInput) perPageInput.value = '20';
+      if (sortInput) sortInput.value = 'oldest';
+      if (sortSelect) sortSelect.value = 'oldest';
       if (results) results.style.display = 'none';
       if (window.history && history.replaceState) {
         const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;

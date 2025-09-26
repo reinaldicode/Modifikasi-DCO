@@ -75,7 +75,13 @@ require_once('Connections/config.php');
       }
       mysqli_free_result($rtypes);
     }
+
     $currentPerPage = isset($_GET['perPage']) ? $_GET['perPage'] : '20';
+
+    // Sort parameter: 'oldest' (terlama ke terbaru) atau 'newest' (terbaru ke terlama)
+    // Default: 'oldest' (ubah ke 'newest' bila ingin default terbaru)
+    $currentSort = isset($_GET['sort']) ? $_GET['sort'] : 'oldest';
+    if (!in_array($currentSort, ['oldest','newest'])) $currentSort = 'oldest';
     ?>
 
     <!-- FORM -->
@@ -124,11 +130,14 @@ require_once('Connections/config.php');
 
       <div class="controls clearfix">
         <input type="hidden" id="perPageInput" name="perPage" value="<?php echo htmlspecialchars($currentPerPage); ?>">
+        <!-- hidden sort field (dipakai untuk paging link) -->
+        <input type="hidden" id="sortInput" name="sort" value="<?php echo htmlspecialchars($currentSort); ?>">
+
         <button type="submit" name="submit" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Search</button>
         <button type="button" id="resetBtn" class="btn btn-default"><span class="glyphicon glyphicon-refresh"></span> Reset</button>
 
         <!-- per-page buttons -->
-        <div class="btn-perpage pull-right">
+        <div class="btn-perpage pull-right" style="margin-left:10px;">
           <div class="btn-group" role="group" aria-label="Per page">
             <?php
               $perOptions = ['10','20','50','all'];
@@ -140,18 +149,30 @@ require_once('Connections/config.php');
             ?>
           </div>
         </div>
+
+        <!-- Sort control -->
+        <div class="pull-right" style="margin-right:10px;">
+          <label style="display:inline-block;margin-right:8px;" class="muted-small">Sort</label>
+          <select id="sortSelect" class="form-control input-sm" style="display:inline-block;width:auto;">
+            <option value="oldest" <?php if($currentSort=='oldest') echo 'selected'; ?>>Oldest first (terlama → terbaru)</option>
+            <option value="newest" <?php if($currentSort=='newest') echo 'selected'; ?>>Newest first (terbaru → terlama)</option>
+          </select>
+        </div>
+
       </div>
     </form>
   </div>
 </div>
 
 <?php
-if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
+if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page']) || isset($_GET['sort'])) {
   $doc_no = mysqli_real_escape_string($link, trim($_GET['doc_no'] ?? ''));
   $title  = mysqli_real_escape_string($link, trim($_GET['title'] ?? ''));
   $no_drf = mysqli_real_escape_string($link, trim($_GET['no_drf'] ?? ''));
   $doc_type = mysqli_real_escape_string($link, trim($_GET['doc_type'] ?? ''));
   $perPageRaw = $_GET['perPage'] ?? '20';
+  $sort = isset($_GET['sort']) ? $_GET['sort'] : 'oldest';
+  if (!in_array($sort, ['oldest','newest'])) $sort = 'oldest';
 
   $whereParts = [];
   if ($doc_no !== '') $whereParts[] = "no_doc LIKE '%$doc_no%'";
@@ -167,9 +188,16 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
   $offset = ($page - 1) * $perPage;
 
   $countSql = "SELECT COUNT(*) AS total FROM docu $where";
-  $totalRows = (int)mysqli_fetch_assoc(mysqli_query($link, $countSql))['total'];
+  $countRes = mysqli_query($link, $countSql);
+  $totalRows = 0;
+  if ($countRes) {
+    $totalRows = (int)mysqli_fetch_assoc($countRes)['total'];
+    mysqli_free_result($countRes);
+  }
 
-  $sql = "SELECT * FROM docu $where ORDER BY no_drf";
+  // ORDER BY using STR_TO_DATE to sort by tgl_upload (string format dd-mm-yyyy or dd/mm/yyyy)
+  $orderDir = ($sort === 'oldest') ? 'ASC' : 'DESC';
+  $sql = "SELECT * FROM docu $where ORDER BY STR_TO_DATE(REPLACE(tgl_upload,'/','-'), '%d-%m-%Y') $orderDir";
   if (!$isAll) $sql .= " LIMIT $offset,$perPage";
   $res = mysqli_query($link, $sql);
 
@@ -177,6 +205,7 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
     $params = $_GET;
     $params['page'] = $page_number;
     if (!isset($params['perPage'])) $params['perPage'] = '20';
+    if (!isset($params['sort'])) $params['sort'] = 'oldest';
     return htmlspecialchars($_SERVER['PHP_SELF'] . '?' . http_build_query($params));
   }
 
@@ -186,6 +215,7 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
     echo '<div class="container">';
     echo '<div class="alert alert-light" style="background:#fff;border:1px solid #e6eefc;">';
     echo '<span class="badge-info-custom">Results</span> Menampilkan <strong>'.$startRow.'</strong> - <strong>'.$endRow.'</strong> dari <strong>'.$totalRows.'</strong>';
+    echo ' &nbsp; <small class="muted-small">Sort: '.htmlspecialchars(($sort==='oldest'?'Oldest first':'Newest first')).'</small>';
     echo '</div>';
     echo '</div>';
   } else {
@@ -234,14 +264,14 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
               echo '<td>'.htmlspecialchars($row['device']).'</td>';
               echo '<td>'.htmlspecialchars($row['process']).'</td>';
               echo '<td>
-					<a class="btn btn-xs btn-info" title="Lihat Detail" href="detail.php?drf='.urlencode($row['no_drf']).'&no_doc='.urlencode($row['no_doc']).'&public=1">
-              <span class="glyphicon glyphicon-search"></span>
-          </a>
-					<a class="btn btn-xs btn-primary" title="Lihat RADF" href="radf.php?drf='.urlencode($row['no_drf']).'">
-						<span class="glyphicon glyphicon-eye-open"></span>
-					</a>
-					</td>';
-					
+                    <a class="btn btn-xs btn-info" title="Lihat Detail" href="detail.php?drf='.urlencode($row['no_drf']).'&no_doc='.urlencode($row['no_doc']).'&public=1">
+                        <span class="glyphicon glyphicon-search"></span>
+                    </a>
+                    <a class="btn btn-xs btn-primary" title="Lihat RADF" href="radf.php?drf='.urlencode($row['no_drf']).'">
+                        <span class="glyphicon glyphicon-eye-open"></span>
+                    </a>
+                    </td>';
+              
               // Kolom Sosialisasi
               echo '<td>';
               if ($has_sos) {
@@ -294,6 +324,18 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
   const resetBtn = document.getElementById('resetBtn');
   const results = document.getElementById('resultsContainer');
   const perPageInput = document.getElementById('perPageInput');
+  const sortInput = document.getElementById('sortInput');
+  const sortSelect = document.getElementById('sortSelect');
+
+  // Set initial sortInput from select
+  if (sortSelect && sortInput) {
+    sortInput.value = sortSelect.value;
+    sortSelect.addEventListener('change', function(){
+      sortInput.value = this.value;
+      // submit otomatis saat ganti sort (opsional)
+      form.submit();
+    });
+  }
 
   // Event untuk tombol perPage
   document.querySelectorAll('.btn-perpage button').forEach(function(b){
@@ -315,6 +357,8 @@ if (isset($_GET['submit']) || isset($_GET['perPage']) || isset($_GET['page'])) {
       form.querySelectorAll('input[type="text"]').forEach(i => i.value='');
       form.querySelectorAll('select').forEach(s => s.selectedIndex=0);
       if (perPageInput) perPageInput.value = '20';
+      if (sortInput) sortInput.value = 'oldest';
+      if (sortSelect) sortSelect.value = 'oldest';
       if (results) results.style.display = 'none';
       if (window.history && history.replaceState) {
         const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
