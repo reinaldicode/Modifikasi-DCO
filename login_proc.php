@@ -72,7 +72,7 @@ if (!empty($username) && !empty($password))
 				$email = $data['email'];
 				$sec = $data['section'];
 				$state = $data['state'];
-				header("location:my_doc.php"); // Redirecting To Other Page
+				header("location:index_login.php"); // Redirecting To Other Page
 			}
 			else
 			{
