@@ -3,7 +3,6 @@ extract($_REQUEST);
 error_reporting(E_ALL ^ (E_NOTICE | E_WARNING| E_PARSE|  E_DEPRECATED));?>
 <br />
 
-
 <script type="text/javascript" src="bootstrap/js/jquery.min.js"></script>
         
                 <script type="text/javascript">
@@ -56,8 +55,6 @@ error_reporting(E_ALL ^ (E_NOTICE | E_WARNING| E_PARSE|  E_DEPRECATED));?>
               $('#'+id).fadeIn();
             }
             </script>
-
-
 
 <div class="row">
 <div class="col-xs-4 well well-lg">
@@ -139,7 +136,6 @@ error_reporting(E_ALL ^ (E_NOTICE | E_WARNING| E_PARSE|  E_DEPRECATED));?>
                 </form>
                  </table>
                  </div>
-
  </div>
 
  <?php
@@ -148,8 +144,8 @@ if (isset($_GET['submit'])){
     $dev=$_GET['device'];
     $proc=$_GET['proc'];
     $status=$_GET['status'];
-    $cat = $_GET['cat']; // Menambahkan ini untuk memastikan variabel $cat terdefinisi
-    $by = $_GET['by']; // Menambahkan ini untuk memastikan variabel $by terdefinisi
+    $cat = $_GET['cat'];
+    $by = $_GET['by'];
 
     if ($proc=='-'){
         $sql="select * from docu where device='$dev' and doc_type='WI' and status='$status' and section='Production' and category='$cat' order by `$by`";
@@ -174,54 +170,54 @@ if (isset($_GET['submit'])){
     <td>Process</td>
     <td>Section</td>
     <td>Action</td>
+    <td>Sosialisasi</td>
 </tr>
 </thead>
 <?php
 $i=1;
 while($info = mysqli_fetch_array($res)) 
 { 
-// ==========================================================
-// SEMUA BAGIAN DI BAWAH INI TELAH DIPERBAIKI
-// ==========================================================
 ?>
 <tbody>
 <tr>
-    <td>
-        <?php echo $i; ?>
-    </td>
-    <td>
-        <?php echo $info['tgl_upload']; ?>
-    </td>
-    <td>
-        <?php echo $info['no_doc']; ?>
-    </td>
-    <td>
-        <?php echo $info['no_rev']; ?>
-    </td>
-    <td>
-        <?php echo $info['no_drf']; ?>
-    </td>
+    <td><?php echo $i; ?></td>
+    <td><?php echo htmlspecialchars($info['tgl_upload']); ?></td>
+    <td><?php echo htmlspecialchars($info['no_doc']); ?></td>
+    <td><?php echo htmlspecialchars($info['no_rev']); ?></td>
+    <td><?php echo htmlspecialchars($info['no_drf']); ?></td>
     <td>
         <?php if ($info['no_drf'] > 12967) { $tempat = $info['doc_type']; } else { $tempat = 'document'; } ?>
-        <a href="<?php echo $tempat; ?>/<?php echo $info['file']; ?>" >
-            <?php echo $info['title']; ?>
+        <a href="<?php echo htmlspecialchars($tempat); ?>/<?php echo htmlspecialchars($info['file']); ?>" >
+            <?php echo htmlspecialchars($info['title']); ?>
         </a>
     </td>
+    <td><?php echo htmlspecialchars($info['process']); ?></td>
+    <td><?php echo htmlspecialchars($info['section']); ?></td>
     <td>
-        <?php echo $info['process']; ?>
+        <a href="detail.php?drf=<?php echo urlencode($info['no_drf']);?>&no_doc=<?php echo urlencode($info['no_doc']);?>&log=1" class="btn btn-xs btn-info" title="lihat detail"><span class="glyphicon glyphicon-search" ></span></a>
+        <a href="radf.php?drf=<?php echo urlencode($info['no_drf']);?>&section=<?php echo urlencode($info['section'])?>&log=1" class="btn btn-xs btn-info" title="lihat RADF"><span class="glyphicon glyphicon-eye-open" ></span></a>
     </td>
     <td>
-        <?php echo $info['section']; ?>
-    </td>
-    <td>
-        <a href="detail.php?drf=<?php echo $info['no_drf'];?>&no_doc=<?php echo $info['no_doc'];?>&log=1" class="btn btn-xs btn-info" title="lihat detail"><span class="glyphicon glyphicon-search" ></span></a>
-        <a href="radf.php?drf=<?php echo $info['no_drf'];?>&section=<?php echo $info['section']?>&log=1" class="btn btn-xs btn-info" title="lihat RADF"><span class="glyphicon glyphicon-eye-open" ></span></a>
+        <?php 
+        // periksa apakah ada bukti sosialisasi
+        $has_sos = !empty($info['sos_file']);
+        
+        if ($has_sos) {
+            echo '<a href="lihat_sosialisasi.php?drf='.urlencode($info['no_drf']).'" class="btn btn-xs btn-primary" title="Lihat Detail Sosialisasi">';
+            echo '<span class="glyphicon glyphicon-file"></span>';
+            echo '</a>';
+        } else {
+            echo '<a href="lihat_sosialisasi.php?drf='.urlencode($info['no_drf']).'" class="btn btn-xs btn-default" title="Belum ada bukti sosialisasi">';
+            echo '<span class="glyphicon glyphicon-file"></span>';
+            echo '</a>';
+        }
+        ?>
     </td>
 </tr>
 </tbody>
 <?php 
     $i++;
-} // Akhir dari while
-} // Akhir dari if
+}
+}
 ?>
 </table>
