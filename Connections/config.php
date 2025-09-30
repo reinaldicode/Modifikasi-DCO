@@ -1,14 +1,58 @@
 <?php
-
 # FileName="Connection_php_mysql.htm"
 # Type="MYSQL"
 # HTTP="true"
-$hostname_config = "192.168.132.36";
-$hostname_config = "localhost";
-$database_config = "doc";
-$username_config = "admin";
-$password_config = "SSItop123!";
-$username_config = "root";
-$password_config = "";
-$config = mysqli_connect($hostname_config, $username_config, $password_config, $database_config) or trigger_error(mysqli_error(),E_USER_ERROR); 
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+/*
+ * Konfigurasi koneksi database
+ * - Pertama coba koneksi ke server kantor (192.168.132.36, user admin)
+ * - Kalau gagal, fallback ke localhost (user root)
+ */
+$dbCandidates = [
+    [
+        'hostname' => '192.168.132.36',
+        'username' => 'admin',
+        'password' => 'SSItop123!',
+        'database' => 'doc',
+    ],
+    [
+        'hostname' => 'localhost',
+        'username' => 'root',
+        'password' => '',
+        'database' => 'doc',
+    ],
+];
+
+$config = null;
+$usedConfig = null;
+
+// coba koneksi sesuai urutan di $dbCandidates
+foreach ($dbCandidates as $c) {
+    $cfg = @mysqli_connect($c['hostname'], $c['username'], $c['password'], $c['database']);
+    if ($cfg) {
+        $config = $cfg;
+        $usedConfig = $c;
+        break;
+    }
+}
+
+// jika tidak ada yang berhasil -> hentikan dan tampilkan error
+if (!$config) {
+    die("Koneksi Gagal: " . mysqli_connect_error());
+}
+
+// set variabel kompatibilitas (untuk kode lama)
+$hostname_config = $usedConfig['hostname'];
+$database_config = $usedConfig['database'];
+$username_config = $usedConfig['username'];
+$password_config = $usedConfig['password'];
+
+// set charset agar aman untuk multibyte/emoji
+mysqli_set_charset($config, "utf8mb4");
+
+// Debug opsional (aktifkan hanya di local testing)
+// echo "Connected to {$hostname_config} / DB: {$database_config}";
 ?>
