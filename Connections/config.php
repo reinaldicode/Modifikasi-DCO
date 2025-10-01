@@ -29,7 +29,7 @@ $dbCandidates = [
 $config = null;
 $usedConfig = null;
 
-// coba koneksi sesuai urutan di $dbCandidates
+// Coba koneksi sesuai urutan di $dbCandidates
 foreach ($dbCandidates as $c) {
     $cfg = @mysqli_connect($c['hostname'], $c['username'], $c['password'], $c['database']);
     if ($cfg) {
@@ -39,20 +39,23 @@ foreach ($dbCandidates as $c) {
     }
 }
 
-// jika tidak ada yang berhasil -> hentikan dan tampilkan error
+// Jika tidak ada yang berhasil -> hentikan dan tampilkan error
 if (!$config) {
     die("Koneksi Gagal: " . mysqli_connect_error());
 }
 
-// set variabel kompatibilitas (untuk kode lama)
+// Set variabel kompatibilitas (untuk kode lama)
 $hostname_config = $usedConfig['hostname'];
 $database_config = $usedConfig['database'];
 $username_config = $usedConfig['username'];
 $password_config = $usedConfig['password'];
 
-// set charset agar aman untuk multibyte/emoji
+// Set charset agar aman untuk multibyte/emoji
 mysqli_set_charset($config, "utf8mb4");
 
+// Set variabel $link untuk kompatibilitas dengan kode yang menggunakan $link
+$link = $config;
+
 // Debug opsional (aktifkan hanya di local testing)
-// echo "Connected to {$hostname_config} / DB: {$database_config}";
+// echo "<!-- Connected to {$hostname_config} / DB: {$database_config} -->";
 ?>
