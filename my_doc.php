@@ -16,7 +16,7 @@ include 'header.php';
 include 'koneksi.php';
 extract($_REQUEST);
 
-// Fungsi untuk menghitung notifikasi
+// Fungsi untuk menghitung notifikasi (DIPERBAIKI)
 function getNotificationCounts($link, $nrp, $state) {
     $counts = array('WI' => 0, 'Procedure' => 0, 'Form' => 0, 'total' => 0);
     
@@ -28,9 +28,10 @@ function getNotificationCounts($link, $nrp, $state) {
             $sql = "SELECT COUNT(*) as count FROM docu WHERE doc_type='$type' AND 
                     (status='Review' OR (DATEDIFF(NOW(), tgl_upload) >= 1 AND status='Review'))";
         } elseif($state == 'Originator') {
-            // Originator melihat dokumen miliknya yang ada update
+            // PERBAIKAN: Originator HANYA melihat dokumen yang masih perlu diproses
+            // TIDAK termasuk yang sudah Approved (sudah selesai)
             $sql = "SELECT COUNT(*) as count FROM docu WHERE doc_type='$type' AND 
-                    user_id='$nrp' AND status IN ('Review','Pending','Approved')";
+                    user_id='$nrp' AND status IN ('Review','Pending')";
         } elseif($state == 'Approver') {
             // Approver melihat dokumen yang perlu di-approve
             $sql = "SELECT COUNT(*) as count FROM docu,rev_doc WHERE docu.doc_type='$type' AND
@@ -47,7 +48,7 @@ function getNotificationCounts($link, $nrp, $state) {
     return $counts;
 }
 
-// Fungsi untuk mendapatkan notifikasi terbaru
+// Fungsi untuk mendapatkan notifikasi terbaru (DIPERBAIKI)
 function getRecentNotifications($link, $nrp, $state, $limit = 10) {
     $notifications = array();
     
@@ -57,9 +58,10 @@ function getRecentNotifications($link, $nrp, $state, $limit = 10) {
                 FROM docu WHERE status IN ('Review','Pending') 
                 ORDER BY tgl_upload DESC LIMIT $limit";
     } elseif($state == 'Originator') {
+        // PERBAIKAN: Hanya tampilkan dokumen yang masih dalam proses
         $sql = "SELECT no_drf, no_doc, title, doc_type, status, tgl_upload,
                 DATEDIFF(NOW(), tgl_upload) as days_passed
-                FROM docu WHERE user_id='$nrp' AND status IN ('Review','Pending','Approved')
+                FROM docu WHERE user_id='$nrp' AND status IN ('Review','Pending')
                 ORDER BY tgl_upload DESC LIMIT $limit";
     } elseif($state == 'Approver') {
         $sql = "SELECT docu.no_drf, docu.no_doc, docu.title, docu.doc_type, docu.status, docu.tgl_upload,
@@ -331,21 +333,16 @@ $(document).ready(function () {
     function checkForUpdates() {
         $('.auto-refresh-indicator').fadeIn();
         
-        // AJAX call to check for new notifications
+        // Reload page to get fresh notification counts
+        // Alternatif: gunakan AJAX untuk update tanpa reload
         $.ajax({
-            url: 'check_notifications.php',
-            method: 'GET',
-            success: function(data) {
-                if(data.hasUpdates) {
-                    // Update notification counts
-                    $('#totalNotifications').text(data.totalCount);
-                    
-                    // Update notification panel
-                    updateNotificationPanel(data.notifications);
-                    
-                    // Show toast notification
-                    showToastNotification('New updates available!');
-                }
+            url: window.location.href,
+            type: 'GET',
+            success: function() {
+                // Page refreshed successfully
+                setTimeout(function() {
+                    location.reload();
+                }, 500);
             },
             complete: function() {
                 $('.auto-refresh-indicator').fadeOut();
@@ -434,6 +431,8 @@ if($state=='Admin') {
     $sql="select * from docu where status='$status' $sort order by no_drf";
 }
 elseif($state=='Originator') {
+    // PERBAIKAN: Tampilkan SEMUA dokumen (Review, Pending, Approved)
+    // Tetapi notifikasi hanya menghitung Review & Pending
     $sql="select * from docu where (docu.status='Review' or docu.status='Pending' or docu.status='Approved') $sort and user_id='$nrp' order by no_drf";
 }
 elseif($state=='Approver') {
