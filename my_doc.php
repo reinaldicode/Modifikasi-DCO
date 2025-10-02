@@ -415,13 +415,17 @@ if($tipe=="-"){
 $sort="and doc_type='$tipe'";
 }
 
+// QUERY DIPERBAIKI - Dokumen Approved tidak ditampilkan kecuali Admin yang memilih status Approved
 if($state=='Admin') {
+    // Admin bisa melihat semua status, tergantung pilihan dropdown
     $sql="select * from docu where status='$status' $sort order by no_drf";
 }
 elseif($state=='Originator') {
-    $sql="select * from docu where (docu.status='Review' or docu.status='Pending' or docu.status='Approved') $sort and user_id='$nrp' order by no_drf";
+    // Originator HANYA melihat dokumen Review dan Pending (TIDAK termasuk Approved)
+    $sql="select * from docu where (docu.status='Review' or docu.status='Pending') $sort and user_id='$nrp' order by no_drf";
 }
 elseif($state=='Approver') {
+    // Approver HANYA melihat dokumen Review yang perlu di-approve
     $sql="select * from docu,rev_doc where docu.status='Review' and rev_doc.status='Review' and docu.no_drf=rev_doc.id_doc and rev_doc.nrp='$nrp' $sort order by no_drf";
 }
 
@@ -603,7 +607,7 @@ $j++;}
                         <input type="hidden" name="drf" id="drf" class="form-control" value=""/>
                         <input type="hidden" name="rev" id="rev" class="form-control" value=""/>
                         <input type="hidden" name="type" id="type" class="form-control" value=""/>
-                        <input type="hidden" name="status" id="status" class="form-control" value=""/>
+                        <inputtype="hidden" name="status" id="status" class="form-control" value=""/>
                         <input type="file" name="baru" class="form-control">
                     </div>
                     <div class="modal-footer"> <a class="btn btn-default" data-dismiss="modal">Cancel</a>
