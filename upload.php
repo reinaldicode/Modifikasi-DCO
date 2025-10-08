@@ -240,7 +240,7 @@ include 'koneksi.php';
                      ?>
                         <td>Department </td>
                         <td>:</td>
-                        <td><input type="text" class="form-control" name="dep" readonly="readonly" value="<?php echo $se;?>"></td>
+                        <td><input type="text" class="form-control" name="dep" readonly="readonly" value="<?php echo $sec;?>"></td>
                     </tr>
                     <tr cellpadding="50px">
                         <td>No. Document &nbsp;&nbsp;</td>
@@ -523,16 +523,17 @@ if (isset($_POST['submit']))
         exit;
     }
 
-    // **NEW: Get snapshot data for historical tracking**
-    // Get uploader name from users table
-    $user_query = "SELECT name FROM users WHERE username = '$nama'";
+    // **FIXED: Get snapshot data for historical tracking**
+    // Get uploader name AND original section from users table
+    $user_query = "SELECT name, section FROM users WHERE username = '$nama'";
     $user_result = mysqli_query($link, $user_query);
     $user_data = mysqli_fetch_array($user_result);
     $uploader_name = isset($user_data['name']) ? $user_data['name'] : $nama;
+    $original_section = isset($user_data['section']) ? $user_data['section'] : ''; // Ambil dari tabel users (BUKAN dari form)
 
     // Create snapshots of current data for historical tracking
     $original_dept = $dep;
-    $original_section = $section;
+    // $original_section sudah diambil dari tabel users di atas (JANGAN dari $_POST['section'])
 
     if ($cat=='External')
     {
@@ -608,7 +609,7 @@ if (isset($_POST['submit']))
         $nama_file=basename($_FILES["file"]["name"]);
         $nama_master=basename($_FILES["master"]["name"]);
         
-        // **UPDATED: Modified INSERT query with new columns**
+        // **UPDATED: Modified INSERT query with corrected original_section**
         $sql="insert into docu(no_drf,user_id,uploader_name,email,dept,original_dept,no_doc,no_rev,rev_to,doc_type,section,original_section,device,process,title,descript,iso,seqtrain,dirtrain,file,history,status,tgl_upload,category,final,file_asli,reminder)
         values (0,'$nama','$uploader_name','$email','$dep','$original_dept','$nodoc','$norev','$revto','$type','$section','$original_section','$device','$process','$title','$desc',$iso,$seqtrain,$dirtrain,'$nama_file','$hist','$sta_doc','$tgl','$cat','','$nama_master',0)";
 
