@@ -16,7 +16,7 @@ include 'header.php';
 include 'koneksi.php';
 extract($_REQUEST);
 
-// Fungsi untuk menghitung notifikasi
+// Fungsi untuk menghitung notifikasi - DIPERBAIKI
 function getNotificationCounts($link, $nrp, $state) {
     $counts = array('WI' => 0, 'Procedure' => 0, 'Form' => 0, 'total' => 0);
     
@@ -24,15 +24,15 @@ function getNotificationCounts($link, $nrp, $state) {
     
     foreach($types as $type) {
         if($state == 'Admin') {
-            // Admin melihat semua dokumen yang butuh review atau overdue
+            // Admin melihat semua dokumen yang butuh review atau pending (TIDAK termasuk Approved)
             $sql = "SELECT COUNT(*) as count FROM docu WHERE doc_type='$type' AND 
-                    (status='Review' OR (DATEDIFF(NOW(), tgl_upload) >= 1 AND status='Review'))";
+                    status IN ('Review', 'Pending')";
         } elseif($state == 'Originator') {
-            // Originator melihat dokumen miliknya yang ada update
+            // Originator melihat dokumen miliknya yang Review atau Pending (TIDAK termasuk Approved)
             $sql = "SELECT COUNT(*) as count FROM docu WHERE doc_type='$type' AND 
-                    user_id='$nrp' AND status IN ('Review','Pending','Approved')";
+                    user_id='$nrp' AND status IN ('Review', 'Pending')";
         } elseif($state == 'Approver') {
-            // Approver melihat dokumen yang perlu di-approve
+            // Approver melihat dokumen yang perlu di-approve (hanya Review)
             $sql = "SELECT COUNT(*) as count FROM docu,rev_doc WHERE docu.doc_type='$type' AND
                     docu.status='Review' AND rev_doc.status='Review' AND 
                     docu.no_drf=rev_doc.id_doc AND rev_doc.nrp='$nrp'";
@@ -47,21 +47,24 @@ function getNotificationCounts($link, $nrp, $state) {
     return $counts;
 }
 
-// Fungsi untuk mendapatkan notifikasi terbaru
+// Fungsi untuk mendapatkan notifikasi terbaru - DIPERBAIKI
 function getRecentNotifications($link, $nrp, $state, $limit = 10) {
     $notifications = array();
     
     if($state == 'Admin') {
+        // Admin hanya melihat dokumen Review dan Pending
         $sql = "SELECT no_drf, no_doc, title, doc_type, status, tgl_upload, 
                 DATEDIFF(NOW(), tgl_upload) as days_passed
-                FROM docu WHERE status IN ('Review','Pending') 
+                FROM docu WHERE status IN ('Review', 'Pending') 
                 ORDER BY tgl_upload DESC LIMIT $limit";
     } elseif($state == 'Originator') {
+        // Originator hanya melihat dokumen miliknya yang Review dan Pending
         $sql = "SELECT no_drf, no_doc, title, doc_type, status, tgl_upload,
                 DATEDIFF(NOW(), tgl_upload) as days_passed
-                FROM docu WHERE user_id='$nrp' AND status IN ('Review','Pending','Approved')
+                FROM docu WHERE user_id='$nrp' AND status IN ('Review', 'Pending')
                 ORDER BY tgl_upload DESC LIMIT $limit";
     } elseif($state == 'Approver') {
+        // Approver hanya melihat dokumen yang perlu di-approve
         $sql = "SELECT docu.no_drf, docu.no_doc, docu.title, docu.doc_type, docu.status, docu.tgl_upload,
                 DATEDIFF(NOW(), docu.tgl_upload) as days_passed
                 FROM docu,rev_doc WHERE docu.status='Review' AND rev_doc.status='Review' 
@@ -331,26 +334,8 @@ $(document).ready(function () {
     function checkForUpdates() {
         $('.auto-refresh-indicator').fadeIn();
         
-        // AJAX call to check for new notifications
-        $.ajax({
-            url: 'check_notifications.php',
-            method: 'GET',
-            success: function(data) {
-                if(data.hasUpdates) {
-                    // Update notification counts
-                    $('#totalNotifications').text(data.totalCount);
-                    
-                    // Update notification panel
-                    updateNotificationPanel(data.notifications);
-                    
-                    // Show toast notification
-                    showToastNotification('New updates available!');
-                }
-            },
-            complete: function() {
-                $('.auto-refresh-indicator').fadeOut();
-            }
-        });
+        // Refresh halaman untuk update notifikasi
+        location.reload();
     }
 
     function showToastNotification(message) {
@@ -430,13 +415,17 @@ if($tipe=="-"){
 $sort="and doc_type='$tipe'";
 }
 
+// QUERY DIPERBAIKI - Dokumen Approved tidak ditampilkan kecuali Admin yang memilih status Approved
 if($state=='Admin') {
+    // Admin bisa melihat semua status, tergantung pilihan dropdown
     $sql="select * from docu where status='$status' $sort order by no_drf";
 }
 elseif($state=='Originator') {
-    $sql="select * from docu where (docu.status='Review' or docu.status='Pending' or docu.status='Approved') $sort and user_id='$nrp' order by no_drf";
+    // Originator HANYA melihat dokumen Review dan Pending (TIDAK termasuk Approved)
+    $sql="select * from docu where (docu.status='Review' or docu.status='Pending') $sort and user_id='$nrp' order by no_drf";
 }
 elseif($state=='Approver') {
+    // Approver HANYA melihat dokumen Review yang perlu di-approve
     $sql="select * from docu,rev_doc where docu.status='Review' and rev_doc.status='Review' and docu.no_drf=rev_doc.id_doc and rev_doc.nrp='$nrp' $sort order by no_drf";
 }
 
@@ -618,7 +607,7 @@ $j++;}
                         <input type="hidden" name="drf" id="drf" class="form-control" value=""/>
                         <input type="hidden" name="rev" id="rev" class="form-control" value=""/>
                         <input type="hidden" name="type" id="type" class="form-control" value=""/>
-                        <input type="hidden" name="status" id="status" class="form-control" value=""/>
+                        <inputtype="hidden" name="status" id="status" class="form-control" value=""/>
                         <input type="file" name="baru" class="form-control">
                     </div>
                     <div class="modal-footer"> <a class="btn btn-default" data-dismiss="modal">Cancel</a>

@@ -297,7 +297,32 @@ if (isset($_GET['type']) && trim($_GET['type']) !== '') {
                             if (!empty($docTypes)) {
                                 echo '<select name="type1" class="form-control">';
                                 echo '<option value="-"> --- Select Type --- </option>';
-                                foreach ($docTypes as $dt) {
+                                // $docTypes may be category=>array; flatten if needed
+                                // Accept both simple list and categorized structure
+                                $flat = [];
+                                $is_assoc = array_keys($docTypes) !== range(0, count($docTypes)-1);
+                                if ($is_assoc) {
+                                    // categorized: pick items from all categories
+                                    foreach ($docTypes as $catk => $items) {
+                                        if (is_array($items)) {
+                                            foreach ($items as $it) {
+                                                if (is_string($it)) $flat[] = $it;
+                                                elseif (is_array($it) && isset($it['name'])) $flat[] = $it['name'];
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // simple list
+                                    foreach ($docTypes as $it) {
+                                        if (is_string($it)) $flat[] = $it;
+                                        elseif (is_array($it) && isset($it['name'])) $flat[] = $it['name'];
+                                    }
+                                }
+                                // deduplicate while preserving order
+                                $seen = [];
+                                foreach ($flat as $dt) {
+                                    if ($dt === '' || in_array($dt, $seen)) continue;
+                                    $seen[] = $dt;
                                     $sel = '';
                                     if ($prefill_type !== '' && strcasecmp($prefill_type, $dt) === 0) $sel = 'selected';
                                     echo '<option value="'.htmlspecialchars($dt).'" '. $sel .'>'.htmlspecialchars($dt).'</option>';
@@ -659,7 +684,8 @@ if (isset($_POST['submit']))
 
     if($res)
     {
-        if(($state != 'Admin' or $cat != 'External' ) and ($type!='Material Spec' or $type!='ROHS' or $type!='MSDS'))
+        // Decide post-insert navigation
+        if(($state != 'Admin' or $cat != 'External' ) and ($type!='Material Spec' and $type!='ROHS' and $type!='MSDS'))
         {
             ?>
             <script language='javascript'>
@@ -667,15 +693,6 @@ if (isset($_POST['submit']))
                 document.location='set_approver.php?id_doc=<?php echo $drf?>&section=<?php echo urlencode($section)?>&type=<?php echo urlencode($type)?>&iso=<?php echo $iso?>&nodoc=<?php echo urlencode($nodoc);?>&title=<?php echo urlencode($title);?>';
             </script>
             <?php 
-        }
-        elseif($type=='MSDS' or $type=='Material Spec' or $type=='ROHS')
-        {
-            ?>
-            <script language='javascript'>
-                alert('Document Uploaded');
-                document.location='upload.php';
-            </script>
-            <?php
         }
         else
         {
@@ -687,7 +704,7 @@ if (isset($_POST['submit']))
             <?php
         }
 
-        // Send notification email (existing logic)
+        // Send notification email (non-blocking)
         require 'PHPMailer/PHPMailerAutoload.php';
         
         $mail = new PHPMailer();
@@ -715,10 +732,9 @@ if (isset($_POST['submit']))
         <span style='color:green'>Uploaded</span> into the System <br /> No. Document : ".htmlspecialchars($nodoc)."<br /> Revision History : ".nl2br(htmlspecialchars($hist))."<br />
         Please Login into <a href='192.168.132.34/document'>Document Online System</a> to monitor the Document, Thank You";
 
-        if(!$mail->Send())
-        {
-            // optionally log error, but don't block user flow
-            // error_log("Mailer error: ".$mail->ErrorInfo);
+        // try send but don't break user flow on failure
+        if(!$mail->Send()) {
+            // log if needed: error_log("Mailer error: ".$mail->ErrorInfo);
         }
     }
     else

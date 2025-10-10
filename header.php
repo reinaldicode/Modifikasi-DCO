@@ -75,20 +75,23 @@ $(document).ready(function () {
 <br />
 
   <?php 
-  // Logika untuk menghitung notifikasi (tetap sama)
+  // Logika untuk menghitung notifikasi - TELAH DIPERBAIKI
   $sql="";
   $rows = 0;
   if (isset($state)) {
     if ($state=='Admin')
     {
-      $sql="SELECT * FROM docu WHERE status='Approved' ORDER BY no_drf";
+      // Admin: hitung dokumen Review + Pending (BUKAN Approved)
+      $sql="SELECT * FROM docu WHERE status IN ('Review', 'Pending') ORDER BY no_drf";
     }
     elseif ($state=='Originator')
     {
-      $sql="SELECT * FROM docu WHERE (status='Approved' OR status='Pending') AND user_id='$nrp' ORDER BY no_drf";
+      // Originator: hitung dokumen miliknya yang Review + Pending
+      $sql="SELECT * FROM docu WHERE status IN ('Review', 'Pending') AND user_id='$nrp' ORDER BY no_drf";
     }
     elseif ($state=='Approver')
     {
+      // Approver: hitung dokumen yang perlu di-approve (hanya Review)
       $sql="SELECT * FROM docu,rev_doc WHERE docu.status='Review' AND rev_doc.status='Review' AND docu.no_drf=rev_doc.id_doc AND rev_doc.nrp='$nrp' ORDER BY no_drf";
     }
 
