@@ -128,18 +128,46 @@ $(document).ready(function () {
                 <img src="images/document.png" alt="Documents"><br> Documents <span class="caret"></span>
             </a>
             <ul class="dropdown-menu">
-                <li><a href="procedure_login.php">Procedure</a></li>
-                <li><a href="wi_login.php">WI</a></li>
-                <li><a href="form_login.php">Form</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a href="MSROHS.php">MS & ROHS</a></li>
-                <li><a href="monitor_login.php">Sample</a></li>
-                <li><a href="msds_login.php">MSDS</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a href="manual.php">Manual</a></li>
-                <li><a href="obs_login.php">Obsolate</a></li>
+                <?php
+                // mapping ke file statis jika ada (sesuaikan nama file bila perlu)
+                $mapping = [
+                    'Procedure' => 'procedure_login.php',
+                    'WI'        => 'wi_login.php',
+                    'Form'      => 'form_login.php',
+                    'MS & ROHS' => 'MSROHS.php',
+                    'Sample'    => 'monitor_login.php',
+                    'MSDS'      => 'msds_login.php',
+                    'Manual'    => 'manual.php',
+                    'Obsolate'  => 'obs_login.php'
+                ];
+
+                $jsonFile = __DIR__ . '/data/document_types.json';
+                if (file_exists($jsonFile)) {
+                    $docTypes = json_decode(file_get_contents($jsonFile), true);
+                    if (is_array($docTypes)) {
+                        foreach ($docTypes as $dt) {
+                            $target = 'documents.php?type=' . urlencode($dt); // default
+                            // jika ada mapping dan file memang ada di server, arahkan ke file tersebut
+                            if (isset($mapping[$dt])) {
+                                $mappedFile = __DIR__ . '/' . $mapping[$dt];
+                                if (file_exists($mappedFile)) {
+                                    $target = $mapping[$dt];
+                                }
+                            }
+                            echo '<li><a href="'. htmlspecialchars($target) .'">'. htmlspecialchars($dt) .'</a></li>';
+                        }
+                    } else {
+                        // fallback
+                        echo '<li><a href="documents.php?type=Procedure">Procedure</a></li>';
+                    }
+                } else {
+                    // fallback static
+                    echo '<li><a href="documents.php?type=Procedure">Procedure</a></li>';
+                }
+                ?>
             </ul>
         </li>
+
 
         <li><a href="search.php" ><img src="images/search3.png" alt="Search"><br />Search</a></li>
         <li><a href="grafik.php" class="bg-info"><img src="images/graph.png" alt="Grafik"><br />Grafik</a></li>
