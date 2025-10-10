@@ -121,7 +121,7 @@ function disablefield()
     }
 
     function validasi(){
-        // var namaValid    = /^[a-zA-Z]+(([\'\,\.\- ][a-zA-Z ])?[a-zA-Z]*)*$/;
+        // var namaValid    = /^[a-zA-Z]+(([\'\,\.\- ][a-zA-Z ])?[a-zA-Z])$/;
         // var emailValid   = /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/;
         var nodoc         = formulir.nodoc.value;
         var norev         = formulir.norev.value;
@@ -182,19 +182,6 @@ function disablefield()
             pesan += '-File Master belum dipilih\n';
         }
 
-        // if ( xtarget== '' || ytarget == '' || lum == '' || ra == ''){
-        //  pesan += '-Data Target belum lengkap\n';        
-        // }
-        
-         
-        // if (lum1 == '' || lum2 == '' || x1 == ''|| x2 == ''
-        //  || y1 == ''|| y2 == ''|| ra1 == ''|| ra2 == ''
-        //  ) {
-        //     pesan += '-Data Scale Factor Tidak Lengkap\n';
-        // }
-         
-        
-         
         if (pesan != '') {
             alert('Data yang diisikan belum lengkap : \n'+pesan);
             return false;
@@ -210,7 +197,20 @@ function disablefield()
 //include 'index.php';
 include 'koneksi.php';
 
- ?>
+// ---------- NEW: load document types from JSON and check prefill ----------
+$jsonFile = __DIR__ . '/data/document_types.json';
+$docTypes = [];
+if (file_exists($jsonFile)) {
+    $tmp = json_decode(file_get_contents($jsonFile), true);
+    if (is_array($tmp)) $docTypes = $tmp;
+}
+// prefill from GET if provided (documents.php?type=...)
+$prefill_type = '';
+if (isset($_GET['type']) && trim($_GET['type']) !== '') {
+    $prefill_type = trim($_GET['type']);
+}
+
+?>
 
 <br />
 <div class="row">
@@ -223,12 +223,12 @@ include 'koneksi.php';
                     <tr cellpadding="50px">
                         <td>User ID &nbsp;&nbsp;</td>
                         <td>:&nbsp; &nbsp; &nbsp;</td>
-                        <td><input type="text" class="form-control" name="user" readonly="readonly" value="<?php echo $nrp;?>"></td>
+                        <td><input type="text" class="form-control" name="user" readonly="readonly" value="<?php echo htmlspecialchars($nrp);?>"></td>
                     </tr>
                     <tr cellpadding="50px">
                         <td>Email &nbsp;&nbsp;</td>
                         <td>:&nbsp; &nbsp; &nbsp;</td>
-                        <td><input type="text" class="form-control" name="email" readonly="readonly" value="<?php echo $email;?>" ></td>
+                        <td><input type="text" class="form-control" name="email" readonly="readonly" value="<?php echo htmlspecialchars($email);?>" ></td>
                     </tr>
                     <tr>
                     <?php
@@ -240,7 +240,7 @@ include 'koneksi.php';
                      ?>
                         <td>Department </td>
                         <td>:</td>
-                        <td><input type="text" class="form-control" name="dep" readonly="readonly" value="<?php echo $sec;?>"></td>
+                        <td><input type="text" class="form-control" name="dep" readonly="readonly" value="<?php echo htmlspecialchars($se);?>"></td>
                     </tr>
                     <tr cellpadding="50px">
                         <td>No. Document &nbsp;&nbsp;</td>
@@ -251,7 +251,7 @@ include 'koneksi.php';
                         <td>No. Revision &nbsp;&nbsp;</td>
                         <td>:&nbsp; &nbsp; &nbsp;</td>
                         <td><input type="text" class="form-control" name="norev" onkeydown="allowOnlyNumbers(event)" oninput="removeNonNumeric(this)" placeholder="Hanya angka yang diperbolehkan">
-                        <input type="hidden" name="state" value=<?php echo $state;?> ></td>
+                        <input type="hidden" name="state" value="<?php echo htmlspecialchars($state);?>" ></td>
                     </tr>
 
                     <tr>
@@ -292,19 +292,58 @@ include 'koneksi.php';
                         <td>Document Type</td>
                         <td>:</td>
                         <td>
-                            
-                         <select name="type1" class="form-control">
-                                        <option value="-"> --- Select Type --- </option>
-                                        
-                                        <option value="Form"> Form </option>
-                                        <option value="Procedure"> Procedure </option>
-                                        <option value="WI"> WI </option>
-                                        <option value="Monitor Sample"> Monitor Sample </option>
-                                        <option value="MSDS"> MSDS </option>
-                                        <option value="Material Spec"> Material Spec </option>
-                                        <option value="ROHS"> ROHS </option>
-                                        </option>
-                                    </select>
+                            <?php
+                            // Generate select from $docTypes. If no JSON, show default options (backward compat).
+                            if (!empty($docTypes)) {
+                                echo '<select name="type1" class="form-control">';
+                                echo '<option value="-"> --- Select Type --- </option>';
+                                // $docTypes may be category=>array; flatten if needed
+                                // Accept both simple list and categorized structure
+                                $flat = [];
+                                $is_assoc = array_keys($docTypes) !== range(0, count($docTypes)-1);
+                                if ($is_assoc) {
+                                    // categorized: pick items from all categories
+                                    foreach ($docTypes as $catk => $items) {
+                                        if (is_array($items)) {
+                                            foreach ($items as $it) {
+                                                if (is_string($it)) $flat[] = $it;
+                                                elseif (is_array($it) && isset($it['name'])) $flat[] = $it['name'];
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // simple list
+                                    foreach ($docTypes as $it) {
+                                        if (is_string($it)) $flat[] = $it;
+                                        elseif (is_array($it) && isset($it['name'])) $flat[] = $it['name'];
+                                    }
+                                }
+                                // deduplicate while preserving order
+                                $seen = [];
+                                foreach ($flat as $dt) {
+                                    if ($dt === '' || in_array($dt, $seen)) continue;
+                                    $seen[] = $dt;
+                                    $sel = '';
+                                    if ($prefill_type !== '' && strcasecmp($prefill_type, $dt) === 0) $sel = 'selected';
+                                    echo '<option value="'.htmlspecialchars($dt).'" '. $sel .'>'.htmlspecialchars($dt).'</option>';
+                                }
+                                echo '</select>';
+                            } else {
+                                // fallback to previous static list
+                                ?>
+                                <select name="type1" class="form-control">
+                                    <option value="-"> --- Select Type --- </option>
+                                    <option value="Form"> Form </option>
+                                    <option value="Procedure"> Procedure </option>
+                                    <option value="WI"> WI </option>
+                                    <option value="Monitor Sample"> Monitor Sample </option>
+                                    <option value="MSDS"> MSDS </option>
+                                    <option value="Material Spec"> Material Spec </option>
+                                    <option value="ROHS"> ROHS </option>
+                                </select>
+                                <?php
+                            }
+                            ?>
                         </td>
                     </tr>
 
@@ -321,7 +360,7 @@ include 'koneksi.php';
                                         <option value="-"> --- Select Section --- </option>
                                         <?php while($data_sec = mysqli_fetch_array( $sql_sect )) 
                                         { ?>
-                                        <option value="<?php echo $data_sec['sect_name']; ?>"> <?php echo $data_sec['sect_name']; ?> </option>
+                                        <option value="<?php echo htmlspecialchars($data_sec['sect_name']); ?>"> <?php echo htmlspecialchars($data_sec['sect_name']); ?> </option>
                                         <?php } ?>
                                         </option>
                                     </select>
@@ -342,7 +381,7 @@ include 'koneksi.php';
                                         <option value="General Production"> General Production </option>
                                         <?php while($data_sec = mysqli_fetch_array( $sql_sect )) 
                                         { ?>
-                                        <option value="<?php echo "$data_sec[name]"; ?>"> <?php echo "$data_sec[name]"; ?> </option>
+                                        <option value="<?php echo htmlspecialchars($data_sec['name']); ?>"> <?php echo htmlspecialchars($data_sec['name']); ?> </option>
                                         <?php } ?>
                                         </option>
                                     </select>
@@ -460,25 +499,30 @@ if (isset($_POST['submit']))
 {
     include 'koneksi.php';
 
-    $nama=$_POST['user'];
-    $email=$_POST['email'];
-    $dep=$_POST['dep'];
-    $nodoc=$_POST['nodoc'];
-    $norev=$_POST['norev'];
-    $revto=$_POST['revto'];
-    $type=$_POST['type1'];
-    $section=$_POST['section'];
-    $device=$_POST['device'];
-    $process=$_POST['proc'];
-    $title=$_POST['title1'];
-    $desc=$_POST['desc'];
-    $cat=$_POST['cat'];
-    $iso=$_POST['iso'];
-    $seqtrain=isset($_POST['seqtrain'])? $_POST['seqtrain']:0;
-    $dirtrain=isset($_POST['dirtrain'])? $_POST['dirtrain']:0;
-    //$master=$POST['master']
+    // sanitize inputs (use mysqli_real_escape_string after koneksi)
+    $nama = isset($_POST['user']) ? mysqli_real_escape_string($link, trim($_POST['user'])) : '';
+    $email = isset($_POST['email']) ? mysqli_real_escape_string($link, trim($_POST['email'])) : '';
+    $dep = isset($_POST['dep']) ? mysqli_real_escape_string($link, trim($_POST['dep'])) : '';
+    $nodoc = isset($_POST['nodoc']) ? mysqli_real_escape_string($link, trim($_POST['nodoc'])) : '';
+    $norev = isset($_POST['norev']) ? mysqli_real_escape_string($link, trim($_POST['norev'])) : '';
+    $revto = isset($_POST['revto']) ? mysqli_real_escape_string($link, trim($_POST['revto'])) : '';
+    $type = isset($_POST['type1']) ? trim($_POST['type1']) : '';
+    // fallback to GET prefill if form didn't provide
+    if (($type == '' || $type == '-') && isset($_GET['type']) && trim($_GET['type']) !== '') {
+        $type = trim($_GET['type']);
+    }
+    $type = mysqli_real_escape_string($link, $type);
+    $section = isset($_POST['section']) ? mysqli_real_escape_string($link, trim($_POST['section'])) : '';
+    $device = isset($_POST['device']) ? mysqli_real_escape_string($link, trim($_POST['device'])) : '';
+    $process = isset($_POST['proc']) ? mysqli_real_escape_string($link, trim($_POST['proc'])) : '';
+    $title = isset($_POST['title1']) ? mysqli_real_escape_string($link, trim($_POST['title1'])) : '';
+    $desc = isset($_POST['desc']) ? mysqli_real_escape_string($link, trim($_POST['desc'])) : '';
+    $cat = isset($_POST['cat']) ? mysqli_real_escape_string($link, trim($_POST['cat'])) : '';
+    $iso = isset($_POST['iso']) ? intval($_POST['iso']) : 0;
+    $seqtrain = isset($_POST['seqtrain'])? intval($_POST['seqtrain']):0;
+    $dirtrain = isset($_POST['dirtrain'])? intval($_POST['dirtrain']):0;
     $tgl = date('d-m-Y');
-    $state=$_POST['state'];
+    $state = isset($_POST['state']) ? mysqli_real_escape_string($link, trim($_POST['state'])) : '';
 
     // Server-side validation for spaces in nodoc
     if (strpos($nodoc, ' ') !== false) {
@@ -523,17 +567,15 @@ if (isset($_POST['submit']))
         exit;
     }
 
-    // **FIXED: Get snapshot data for historical tracking**
-    // Get uploader name AND original section from users table
-    $user_query = "SELECT name, section FROM users WHERE username = '$nama'";
+    // Get uploader name AND original section from users table (best-effort)
+    $user_query = "SELECT name, section FROM users WHERE username = '".mysqli_real_escape_string($link, $nama)."' LIMIT 1";
     $user_result = mysqli_query($link, $user_query);
     $user_data = mysqli_fetch_array($user_result);
-    $uploader_name = isset($user_data['name']) ? $user_data['name'] : $nama;
-    $original_section = isset($user_data['section']) ? $user_data['section'] : ''; // Ambil dari tabel users (BUKAN dari form)
+    $uploader_name = isset($user_data['name']) ? mysqli_real_escape_string($link, $user_data['name']) : mysqli_real_escape_string($link, $nama);
+    $original_section = isset($user_data['section']) ? mysqli_real_escape_string($link, $user_data['section']) : '';
 
     // Create snapshots of current data for historical tracking
     $original_dept = $dep;
-    // $original_section sudah diambil dari tabel users di atas (JANGAN dari $_POST['section'])
 
     if ($cat=='External')
     {
@@ -568,28 +610,47 @@ if (isset($_POST['submit']))
         $sta_doc='Secured'; 
     }
 
-    $hist=$_POST['hist'];
+    $hist = isset($_POST['hist']) ? mysqli_real_escape_string($link, trim($_POST['hist'])) : '';
 
-    $target_dir = "$type/";
-    $target_file = $target_dir . basename($_FILES["file"]["name"]);
-    $uploadOk = 1;
-    $imageFileType = pathinfo($target_file,PATHINFO_EXTENSION);
-    // Check if image file is a actual image or fake image
+    // sanitize type for folder name: allow only letters, numbers, space, -, _ and &
+    $safe_type = trim($type);
+    $safe_type = preg_replace('/[^A-Za-z0-9 _\-&]/', '', $safe_type);
+    if ($safe_type === '') $safe_type = 'others';
+    $safe_dir_name = str_replace(' ', '_', $safe_type) . '/';
 
-        
-    if (move_uploaded_file($_FILES["file"]["tmp_name"], $target_file))
-    {
-        echo "The file ". basename( $_FILES["file"]["name"]). " has been uploaded.";
+    // Ensure target dir exists
+    $target_dir = $safe_dir_name;
+    if (!is_dir($target_dir)) {
+        if (!@mkdir($target_dir, 0755, true)) {
+            // fallback to generic folder
+            $target_dir = 'others/';
+            if (!is_dir($target_dir)) @mkdir($target_dir, 0755, true);
+        }
     }
-    
-    $target_dir = "master/";
-    $target_file = $target_dir . basename($_FILES["master"]["name"]);
-    $uploadOk = 1;
-    $imageFileType = pathinfo($target_file,PATHINFO_EXTENSION);
-    // Check if image file is a actual image or fake image
 
-    // Check file size
-    if($_FILES["master"]["size"] > 15000000)
+    // process document file
+    $doc_filename = basename($_FILES["file"]["name"]);
+    $doc_filename = str_replace("'", "", $doc_filename); // basic sanitize
+    $target_file_doc = $target_dir . $doc_filename;
+
+    if (!move_uploaded_file($_FILES["file"]["tmp_name"], $target_file_doc)) {
+        ?>
+        <script language='javascript'>
+            alert('Upload File Document gagal. Periksa permission folder.');
+            document.location='upload.php';
+        </script>
+        <?php
+        exit;
+    }
+
+    // process master file
+    $target_dir_master = "master/";
+    if (!is_dir($target_dir_master)) @mkdir($target_dir_master, 0755, true);
+    $master_filename = basename($_FILES["master"]["name"]);
+    $master_filename = str_replace("'", "", $master_filename);
+    $target_file_master = $target_dir_master . $master_filename;
+
+    if ($_FILES["master"]["size"] > 15000000)
     {
         ?>
     
@@ -599,134 +660,112 @@ if (isset($_POST['submit']))
                             </script>
 
         <?php
+        exit;
     }
-    else
+    if (!move_uploaded_file($_FILES["master"]["tmp_name"], $target_file_master)) {
+        ?>
+        <script language='javascript'>
+            alert('Upload File Master gagal. Periksa permission folder.');
+            document.location='upload.php';
+        </script>
+        <?php
+        exit;
+    }
+
+    // Prepare and run INSERT (use escaped values)
+    $nama_file = mysqli_real_escape_string($link, $doc_filename);
+    $nama_master = mysqli_real_escape_string($link, $master_filename);
+
+    $sql="INSERT INTO docu(no_drf,user_id,uploader_name,email,dept,original_dept,no_doc,no_rev,rev_to,doc_type,section,original_section,device,process,title,descript,iso,seqtrain,dirtrain,file,history,status,tgl_upload,category,final,file_asli,reminder)
+    VALUES (0,'$nama','$uploader_name','$email','$dep','$original_dept','$nodoc','$norev','$revto','$type','$section','$original_section','$device','$process','$title','$desc',$iso,$seqtrain,$dirtrain,'$nama_file','$hist','$sta_doc','$tgl','$cat','','$nama_master',0)";
+
+    $res=mysqli_query($link, $sql);
+    $drf=mysqli_insert_id($link);
+
+    if($res)
     {
-        if(move_uploaded_file($_FILES["master"]["tmp_name"], $target_file))
+        // Decide post-insert navigation
+        if(($state != 'Admin' or $cat != 'External' ) and ($type!='Material Spec' and $type!='ROHS' and $type!='MSDS'))
         {
-            echo "The file ". basename( $_FILES["master"]["name"]). " has been uploaded.";
-        }
-        $nama_file=basename($_FILES["file"]["name"]);
-        $nama_master=basename($_FILES["master"]["name"]);
-        
-        // **UPDATED: Modified INSERT query with corrected original_section**
-        $sql="insert into docu(no_drf,user_id,uploader_name,email,dept,original_dept,no_doc,no_rev,rev_to,doc_type,section,original_section,device,process,title,descript,iso,seqtrain,dirtrain,file,history,status,tgl_upload,category,final,file_asli,reminder)
-        values (0,'$nama','$uploader_name','$email','$dep','$original_dept','$nodoc','$norev','$revto','$type','$section','$original_section','$device','$process','$title','$desc',$iso,$seqtrain,$dirtrain,'$nama_file','$hist','$sta_doc','$tgl','$cat','','$nama_master',0)";
-
-        // echo $sql;
-        // echo $email;
-        $res=mysqli_query($link, $sql);
-        $drf=mysqli_insert_id($link);
-
-        if($res)
-        {
-            if(($state != 'Admin' or $cat != 'External' ) and ($type!='Material Spec' or $type!='ROHS' or $type!='MSDS'))
-            {
-                echo "berhasil";
-                ?>
-                <script language='javascript'>
-                    alert('Document Uploaded , please set the approvers');
-                    document.location='set_approver.php?id_doc=<?php echo $drf?>&section=<?php echo $section?>&type=<?php echo $type?>&iso=<?php echo $iso?>&nodoc=<?php echo $nodoc;?>&title=<?php echo $title;?>';
-                </script>
-                <?php 
-            }
-            elseif($type=='MSDS' or $type=='Material Spec' or $type=='ROHS')
-            {
-                // echo "gagal";
-                ?>
-                <script language='javascript'>
-                    alert('Document Uploaded');
-                    //document.location='set_approver.php?id_doc=<?php echo $drf?>&section=<?php echo $section?>&type=<?php echo $type?>&iso=<?php echo $iso?>&nodoc=<?php echo $nodoc;?>&title=<?php echo $title;?>';
-                    document.location='upload.php';
-                </script>
-                <?php
-            }
-            else
-            {
-                ?>
-                <script language='javascript'>
-                    alert('Document Uploaded');
-                    //document.location='set_approver.php?id_doc=<?php echo $drf?>&section=<?php echo $section?>&type=<?php echo $type?>&iso=<?php echo $iso?>&nodoc=<?php echo $nodoc;?>&title=<?php echo $title;?>';
-                    document.location='upload.php';
-                </script>
-                <?php
-            }
-
-            //require_once("class.smtp.php");
-            //require_once("class.phpmailer.php");
-            require 'PHPMailer/PHPMailerAutoload.php';
-            
-            $mail = new PHPMailer();
-
-            // setting          
-            $mail->IsSMTP();// send via SMTP
-            include 'smtp.php';
-            // $mail->Host     = "relay.sharp.co.jp"; // SMTP servers
-            //$mail->Port = "3080"; 
-            // $mail->SMTPAuth = true;// turn on SMTP authentication
-            // $mail->Username = "int\gzb310003";// SMTP username
-            // $mail->Password = "20132013";// SMTP password
-
-            // pengirim
-            $mail->setFrom('dc_admin@ssi.sharp-world.com');
-            //$mail->From     = "dc_admin@ssi.sharp-world.com";
-            $mail->FromName = "Admin Document Online System";
-
-            // penerima
-            $mail->addAddress($email);
-            if($cat=='External')
-            {
-                $mail->addAddress("qa01@ssi.sharp-world.com");
-            }
-            
-            $mail->WordWrap = 50;                              // set word wrap
-            $mail->IsHTML(true);                               // send as HTML
-                
-            //$link="http://www.ssi.global.sharp.co.jp/AglSystemOpto/";
-            $mail->Subject  = "Document Uploaded" ;
-            $mail->Body     =  "Attention Mr./Mrs. : Originator <br /> This following <span style='color:green'>".$type."</span> document was 
-            <span style='color:green'>Uploaded</span> into the System <br /> No. Document : ".$nodoc."<br /> Revision History : ".$hist."<br />
-            Please Login into <a href='192.168.132.34/document'>Document Online System</a> to monitor the Document, Thank You";
-            //$mail->AltBody  =  "This research is supported by MIS";
-
-            if(!$mail->Send())
-            {
-                echo "Message was not sent <p>";
-                echo "Mailer Error: " . $mail->ErrorInfo;
-                // echo $sql2;
-                exit;
-            }
+            ?>
+            <script language='javascript'>
+                alert('Document Uploaded , please set the approvers');
+                document.location='set_approver.php?id_doc=<?php echo $drf?>&section=<?php echo urlencode($section)?>&type=<?php echo urlencode($type)?>&iso=<?php echo $iso?>&nodoc=<?php echo urlencode($nodoc);?>&title=<?php echo urlencode($title);?>';
+            </script>
+            <?php 
         }
         else
         {
-            echo "gagal_total";
             ?>
             <script language='javascript'>
-            // alert('Document Upload Failed');
-            document.location='upload.php';
+                alert('Document Uploaded');
+                document.location='upload.php';
             </script>
             <?php
         }
 
-        $jumlah = count($_POST["rel"]);
+        // Send notification email (non-blocking)
+        require 'PHPMailer/PHPMailerAutoload.php';
+        
+        $mail = new PHPMailer();
 
+        // setting          
+        $mail->IsSMTP();// send via SMTP
+        include 'smtp.php';
+
+        // pengirim
+        $mail->setFrom('dc_admin@ssi.sharp-world.com');
+        $mail->FromName = "Admin Document Online System";
+
+        // penerima
+        $mail->addAddress($email);
+        if($cat=='External')
+        {
+            $mail->addAddress("qa01@ssi.sharp-world.com");
+        }
+        
+        $mail->WordWrap = 50;                              // set word wrap
+        $mail->IsHTML(true);                               // send as HTML
+            
+        $mail->Subject  = "Document Uploaded" ;
+        $mail->Body     =  "Attention Mr./Mrs. : Originator <br /> This following <span style='color:green'>".htmlspecialchars($type)."</span> document was 
+        <span style='color:green'>Uploaded</span> into the System <br /> No. Document : ".htmlspecialchars($nodoc)."<br /> Revision History : ".nl2br(htmlspecialchars($hist))."<br />
+        Please Login into <a href='192.168.132.34/document'>Document Online System</a> to monitor the Document, Thank You";
+
+        // try send but don't break user flow on failure
+        if(!$mail->Send()) {
+            // log if needed: error_log("Mailer error: ".$mail->ErrorInfo);
+        }
+    }
+    else
+    {
+        ?>
+        <script language='javascript'>
+        // alert('Document Upload Failed');
+        document.location='upload.php';
+        </script>
+        <?php
+    }
+
+    // process related docs
+    if (isset($_POST["rel"]) && is_array($_POST["rel"])) {
+        $jumlah = count($_POST["rel"]);
         for($i=0; $i < $jumlah; $i++) 
         {
-            $no_doc=$_POST["rel"][$i];
+            $no_doc = mysqli_real_escape_string($link, trim($_POST["rel"][$i]));
 
             if ($no_doc <> '' )
             {
-                $q=mysqli_query($link, "insert into rel_doc(id,no_drf,no_doc) values ('',$drf,'$no_doc')"); 
+                $q=mysqli_query($link, "INSERT INTO rel_doc(id,no_drf,no_doc) VALUES ('',$drf,'$no_doc')"); 
             }
         }
-
-        if ($norev=='0')
-        {
-            $insert="insert into distribusi(id_dis,no_drf,pic,give,date_give,location,receiver,retrieve,retrieve_from,retrieve_date)
-            values('',$drf,'','','','','','','','')";
-            $result=mysqli_query($link, $insert);
-        }
     }
-    //else{ echo "Error: " . $sql . "<br>" . $conn->error;}
+
+    if ($norev=='0')
+    {
+        $insert="INSERT INTO distribusi(id_dis,no_drf,pic,give,date_give,location,receiver,retrieve,retrieve_from,retrieve_date)
+        VALUES('',$drf,'','','','','','','','')";
+        $result=mysqli_query($link, $insert);
+    }
 }
 ?>
