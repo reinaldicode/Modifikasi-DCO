@@ -108,7 +108,8 @@ if (isset($_GET['error'])) {
                         <?php echo htmlspecialchars($sub['name']); ?>
                         <?php 
                         $isLegacy = isset($sub['is_legacy']) && $sub['is_legacy'] === true;
-                        if ($isLegacy): 
+                        $hasLegacyFile = isset($sub['legacy_file']) && !empty($sub['legacy_file']);
+                        if ($isLegacy || $hasLegacyFile): 
                         ?>
                             <span class="label label-warning">Legacy (Custom File)</span>
                         <?php else: ?>
@@ -128,7 +129,17 @@ if (isset($_GET['error'])) {
                 <label>Nama Submenu <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" name="submenu_name" required 
                        placeholder="Contoh: PE Production, Quality Daily Report, dll">
-                <p class="help-block">Masukkan nama kategori/submenu untuk <?php echo htmlspecialchars($parent['name']); ?>. Halaman akan di-generate otomatis.</p>
+                <p class="help-block">
+                    Masukkan nama kategori/submenu untuk <?php echo htmlspecialchars($parent['name']); ?>. Halaman akan di-generate otomatis.
+                    <br><strong>Tips:</strong> Gunakan kata "Production" atau "Other" di nama submenu untuk aktivasi auto-filtering:
+                </p>
+                <div class="well well-sm">
+                    <ul class="small" style="margin-bottom:0;">
+                        <li><strong>[Nama] Production</strong> → Otomatis filter dokumen dengan device production (device != '-')</li>
+                        <li><strong>[Nama] Other</strong> → Otomatis filter dokumen tanpa device spesifik (device = '-' atau kosong)</li>
+                        <li><strong>Nama lain</strong> → Tampilkan semua dokumen tanpa filter device otomatis</li>
+                    </ul>
+                </div>
             </div>
 
             <hr>

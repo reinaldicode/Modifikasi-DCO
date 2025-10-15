@@ -4,6 +4,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     $jsonFile = __DIR__ . '/data/document_types.json';
     $types = json_decode(file_get_contents($jsonFile), true);
     
+    if (!is_array($types)) {
+        $types = [];
+    }
+    
     $name = trim($_POST['name']);
     $hasSubmenu = isset($_POST['has_submenu']) ? true : false;
     
@@ -24,24 +28,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         if (in_array(strtolower($name), $lower)) {
             header("Location: add_document.php?error=duplicate");
             exit;
-        } else {
-            // Generate ID dari nama
-            $id = strtolower(str_replace(' ', '_', $name));
-            
-            // Tambahkan document type baru (DYNAMIC, NO LEGACY FILE)
-            $newType = [
-                'id' => $id,
-                'name' => $name,
-                'has_submenu' => $hasSubmenu,
-                'submenu' => [],
-                'filter_config' => $filterConfig
-            ];
-            
-            $types[] = $newType;
-            
-            @file_put_contents($jsonFile, json_encode($types, JSON_PRETTY_PRINT));
-            
+        }
+        
+        // Generate ID dari nama
+        $id = strtolower(str_replace(' ', '_', $name));
+        
+        // Create new document type (SELALU DYNAMIC - tidak ada custom file)
+        $newType = [
+            'id' => $id,
+            'name' => $name,
+            'has_submenu' => $hasSubmenu,
+            'submenu' => [],
+            'filter_config' => $filterConfig,
+            'use_custom_file' => false,
+            'custom_file' => ''
+        ];
+        
+        // Add to array
+        $types[] = $newType;
+        
+        // Save
+        if (file_put_contents($jsonFile, json_encode($types, JSON_PRETTY_PRINT))) {
             header("Location: conf_document.php?success=added");
+            exit;
+        } else {
+            header("Location: add_document.php?error=save_failed");
             exit;
         }
     } else {
@@ -61,6 +72,8 @@ if (isset($_GET['error'])) {
         $error = "Document type dengan nama tersebut sudah ada.";
     } elseif ($_GET['error'] == 'empty') {
         $error = "Silakan masukkan nama document type.";
+    } elseif ($_GET['error'] == 'save_failed') {
+        $error = "Gagal menyimpan ke file JSON. Periksa permission folder.";
     }
 }
 ?>
@@ -69,39 +82,50 @@ if (isset($_GET['error'])) {
 <div class="row">
     <div class="col-xs-1"></div>
     <div class="col-xs-6 well well-lg">
-        <h2>Tambah Document Type Baru</h2>
+        <h2><span class="glyphicon glyphicon-plus-sign"></span> Add New Document Type</h2>
+        <p class="text-muted">Tambahkan tipe dokumen baru ke sistem</p>
+        <hr>
         
         <?php if ($error): ?>
-            <div class="alert alert-danger" style="margin-top:10px;">
-                <?php echo htmlspecialchars($error); ?>
+            <div class="alert alert-danger alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <strong>Error!</strong> <?php echo htmlspecialchars($error); ?>
             </div>
         <?php endif; ?>
 
         <form action="" method="POST">
             <div class="form-group">
-                <label>Nama Document Type <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="name" required 
-                       placeholder="Contoh: PE, Quality Report, Training Record, dll">
-                <p class="help-block">Masukkan nama document type yang unik. Halaman akan di-generate otomatis.</p>
+                <label><strong>Document Type Name</strong> <span class="text-danger">*</span></label>
+                <input type="text" class="form-control input-lg" name="name" required 
+                       placeholder="Contoh: Quality Report, Training Record, dll">
+                <p class="help-block">
+                    <span class="glyphicon glyphicon-info-sign"></span> 
+                    Nama tipe dokumen yang akan ditampilkan di menu navigation
+                </p>
             </div>
             
             <div class="form-group">
                 <div class="checkbox">
                     <label>
                         <input type="checkbox" name="has_submenu" id="has_submenu"> 
-                        <strong>Document Type ini memiliki Sub-Menu</strong>
+                        <strong>Dokumen ini memiliki Sub-Menu</strong>
                     </label>
-                    <p class="help-block">
-                        Centang jika document type ini akan memiliki submenu dropdown di navigation bar. 
-                        Submenu bisa ditambahkan setelah document type dibuat.
-                    </p>
                 </div>
+                <p class="help-block">
+                    <span class="glyphicon glyphicon-info-sign"></span> 
+                    Centang jika dokumen ini akan memiliki kategori sub-menu (misalnya: Production, Other, dll)
+                </p>
+            </div>
+
+            <div class="alert alert-info" id="submenu_info" style="display:none;">
+                <span class="glyphicon glyphicon-info-sign"></span> 
+                <strong>Info:</strong> Setelah document type dibuat, Anda bisa menambahkan submenu melalui tombol <strong>"Add Submenu"</strong> di halaman config.
             </div>
 
             <hr>
 
-            <h4><span class="glyphicon glyphicon-filter"></span> Filter yang Tersedia</h4>
-            <p class="text-muted">Pilih filter yang akan ditampilkan di halaman document list:</p>
+            <h4><span class="glyphicon glyphicon-filter"></span> Filter Configuration</h4>
+            <p class="text-muted">Pilih filter yang akan tersedia di halaman document list:</p>
 
             <div class="well">
                 <div class="row">
@@ -109,24 +133,21 @@ if (isset($_GET['error'])) {
                         <div class="checkbox">
                             <label>
                                 <input type="checkbox" name="filter_section" checked>
-                                <strong>Section</strong><br>
-                                <small class="text-muted">Filter berdasarkan section/department</small>
+                                <strong>Section</strong>
                             </label>
                         </div>
                         
                         <div class="checkbox">
                             <label>
                                 <input type="checkbox" name="filter_device" id="filter_device">
-                                <strong>Device</strong><br>
-                                <small class="text-muted">Filter berdasarkan device/mesin</small>
+                                <strong>Device</strong>
                             </label>
                         </div>
                         
                         <div class="checkbox">
                             <label>
                                 <input type="checkbox" name="filter_process" id="filter_process">
-                                <strong>Process</strong><br>
-                                <small class="text-muted">Filter berdasarkan process (butuh Device)</small>
+                                <strong>Process</strong>
                             </label>
                         </div>
                     </div>
@@ -135,36 +156,27 @@ if (isset($_GET['error'])) {
                         <div class="checkbox">
                             <label>
                                 <input type="checkbox" name="filter_status" checked>
-                                <strong>Status</strong><br>
-                                <small class="text-muted">Filter berdasarkan status approval</small>
+                                <strong>Status</strong>
                             </label>
                         </div>
                         
                         <div class="checkbox">
                             <label>
                                 <input type="checkbox" name="filter_category">
-                                <strong>Category</strong><br>
-                                <small class="text-muted">Filter berdasarkan Internal/External</small>
+                                <strong>Category</strong>
                             </label>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="alert alert-success">
-                <strong><span class="glyphicon glyphicon-ok-circle"></span> Document Type Baru = Dynamic Page</strong>
-                <ul class="small" style="margin:5px 0 0 0;">
-                    <li>Halaman dokumen akan di-generate <strong>otomatis</strong> dengan filter yang Anda pilih</li>
-                    <li>Menu akan langsung muncul di navigation bar setelah disimpan</li>
-                    <li>Tidak perlu setup teknis tambahan - sistem handle semua routing</li>
-                </ul>
-            </div>
-
             <div class="form-group">
-                <button type="submit" name="submit" class="btn btn-success btn-lg">
-                    <span class="glyphicon glyphicon-save"></span> Tambah Document Type
+                <button type="submit" name="submit" class="btn btn-success btn-lg btn-block">
+                    <span class="glyphicon glyphicon-save"></span> Add Document Type
                 </button>
-                <a href="conf_document.php" class="btn btn-default btn-lg">Batal</a>
+                <a href="conf_document.php" class="btn btn-default btn-lg btn-block">
+                    <span class="glyphicon glyphicon-arrow-left"></span> Cancel
+                </a>
             </div>
         </form>
     </div>
@@ -172,6 +184,15 @@ if (isset($_GET['error'])) {
 
 <script>
 $(document).ready(function(){
+    // Show submenu info
+    $('#has_submenu').change(function(){
+        if($(this).is(':checked')) {
+            $('#submenu_info').slideDown();
+        } else {
+            $('#submenu_info').slideUp();
+        }
+    });
+
     // Auto-check device when process is checked
     $('#filter_process').change(function(){
         if($(this).is(':checked')) {
@@ -188,3 +209,12 @@ $(document).ready(function(){
     });
 });
 </script>
+
+<style>
+.help-block {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    margin-bottom: 0;
+}
+</style>

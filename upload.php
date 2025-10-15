@@ -10,186 +10,8 @@ if (file_exists($jsonFile)) {
     if (is_array($tmp)) $docTypes = $tmp;
 }
 
-// Prefill dari GET parameter (dari menu documents atau tombol Add)
+// Prefill dari GET parameter
 $prefill_type = isset($_GET['type']) ? trim($_GET['type']) : '';
-$prefill_subtype = isset($_GET['subtype']) ? trim($_GET['subtype']) : '';
-
-// ===== PROSES SUBMIT FORM =====
-if (isset($_POST['submit'])) {
-    // sanitize inputs
-    $nama = isset($_POST['user']) ? mysqli_real_escape_string($link, trim($_POST['user'])) : '';
-    $email = isset($_POST['email']) ? mysqli_real_escape_string($link, trim($_POST['email'])) : '';
-    $dep = isset($_POST['dep']) ? mysqli_real_escape_string($link, trim($_POST['dep'])) : '';
-    $nodoc = isset($_POST['nodoc']) ? mysqli_real_escape_string($link, trim($_POST['nodoc'])) : '';
-    $norev = isset($_POST['norev']) ? mysqli_real_escape_string($link, trim($_POST['norev'])) : '';
-    $revto = isset($_POST['revto']) ? mysqli_real_escape_string($link, trim($_POST['revto'])) : '';
-    
-    // DOC TYPE
-    $type = isset($_POST['type1']) ? trim($_POST['type1']) : '';
-    if (($type == '' || $type == '-') && isset($_GET['type']) && trim($_GET['type']) !== '') {
-        $type = trim($_GET['type']);
-    }
-    $type = mysqli_real_escape_string($link, $type);
-    
-    // DOC SUBTYPE
-    $doc_subtype = isset($_POST['doc_subtype']) && trim($_POST['doc_subtype']) !== '' ? mysqli_real_escape_string($link, trim($_POST['doc_subtype'])) : NULL;
-    
-    $section = isset($_POST['section']) ? mysqli_real_escape_string($link, trim($_POST['section'])) : '';
-    $device = isset($_POST['device']) ? mysqli_real_escape_string($link, trim($_POST['device'])) : '';
-    $process = isset($_POST['proc']) ? mysqli_real_escape_string($link, trim($_POST['proc'])) : '';
-    $title = isset($_POST['title1']) ? mysqli_real_escape_string($link, trim($_POST['title1'])) : '';
-    $desc = isset($_POST['desc']) ? mysqli_real_escape_string($link, trim($_POST['desc'])) : '';
-    $cat = isset($_POST['cat']) ? mysqli_real_escape_string($link, trim($_POST['cat'])) : '';
-    $iso = isset($_POST['iso']) ? intval($_POST['iso']) : 0;
-    $seqtrain = isset($_POST['seqtrain'])? intval($_POST['seqtrain']):0;
-    $dirtrain = isset($_POST['dirtrain'])? intval($_POST['dirtrain']):0;
-    $tgl = date('d-m-Y');
-    $state = isset($_POST['state']) ? mysqli_real_escape_string($link, trim($_POST['state'])) : '';
-
-    // Server-side validation for spaces in nodoc
-    if (strpos($nodoc, ' ') !== false) {
-        ?>
-        <script language='javascript'>
-            alert('Nomor Dokumen tidak boleh mengandung spasi');
-            document.location='upload.php';
-        </script>
-        <?php
-        exit;
-    }
-
-    // Server-side validation for numeric-only norev
-    if (!empty($norev) && !preg_match('/^\d+$/', $norev)) {
-        ?>
-        <script language='javascript'>
-            alert('Nomor Revisi hanya boleh berisi angka');
-            document.location='upload.php';
-        </script>
-        <?php
-        exit;
-    }
-
-    // Server-side validation for file uploads
-    if (!isset($_FILES["file"]) || $_FILES["file"]["error"] == UPLOAD_ERR_NO_FILE) {
-        ?>
-        <script language='javascript'>
-            alert('File Document harus diupload');
-            document.location='upload.php';
-        </script>
-        <?php
-        exit;
-    }
-
-    if (!isset($_FILES["master"]) || $_FILES["master"]["error"] == UPLOAD_ERR_NO_FILE) {
-        ?>
-        <script language='javascript'>
-            alert('File Master harus diupload');
-            document.location='upload.php';
-        </script>
-        <?php
-        exit;
-    }
-
-    // Get uploader name AND original section from users table
-    $user_query = "SELECT name, section FROM users WHERE username = '".mysqli_real_escape_string($link, $nama)."' LIMIT 1";
-    $user_result = mysqli_query($link, $user_query);
-    $user_data = mysqli_fetch_array($user_result);
-    $uploader_name = isset($user_data['name']) ? mysqli_real_escape_string($link, $user_data['name']) : mysqli_real_escape_string($link, $nama);
-    $original_section = isset($user_data['section']) ? mysqli_real_escape_string($link, $user_data['section']) : '';
-
-    $original_dept = $dep;
-
-    if ($cat=='External') {
-        $sta_doc='Secured';
-    } else {
-        $sta_doc='Review';
-    }
-
-    $cek_opl = substr($nodoc, 0,3);
-
-    if($cek_opl=='OPL') {
-        $sta_doc='Secured';
-    }
-    if($type=='Monitor Sample' || $type=='Sample') {
-        $sta_doc='Secured';
-    }
-    if($type=='MSDS') {
-        $sta_doc='Secured'; 
-    }
-    if($type=='Material Spec' || $type=='MS & ROHS') {
-        $sta_doc='Secured'; 
-    }
-    if($type=='ROHS') {
-        $sta_doc='Secured'; 
-    }
-
-    $hist = isset($_POST['hist']) ? mysqli_real_escape_string($link, trim($_POST['hist'])) : '';
-
-    // sanitize type for folder name
-    $safe_type = trim($type);
-    $safe_type = preg_replace('/[^A-Za-z0-9 _\-&]/', '', $safe_type);
-    if ($safe_type === '') $safe_type = 'others';
-    $safe_dir_name = str_replace(' ', '_', $safe_type) . '/';
-
-    // Ensure target dir exists
-    $target_dir = $safe_dir_name;
-    if (!is_dir($target_dir)) {
-        if (!@mkdir($target_dir, 0755, true)) {
-            $target_dir = 'others/';
-            if (!is_dir($target_dir)) @mkdir($target_dir, 0755, true);
-        }
-    }
-
-    // process document file
-    $doc_filename = basename($_FILES["file"]["name"]);
-    $doc_filename = str_replace("'", "", $doc_filename);
-    $target_file_doc = $target_dir . $doc_filename;
-
-    if (!move_uploaded_file($_FILES["file"]["tmp_name"], $target_file_doc)) {
-        ?>
-        <script language='javascript'>
-            alert('Upload File Document gagal. Periksa permission folder.');
-            document.location='upload.php';
-        </script>
-        <?php
-        exit;
-    }
-
-    // process master file
-    $master_filename = basename($_FILES["master"]["name"]);
-    $master_filename = str_replace("'", "", $master_filename);
-    $target_file_master = $target_dir . $master_filename;
-
-    if (!move_uploaded_file($_FILES["master"]["tmp_name"], $target_file_master)) {
-        ?>
-        <script language='javascript'>
-            alert('Upload File Master gagal. Periksa permission folder.');
-            document.location='upload.php';
-        </script>
-        <?php
-        exit;
-    }
-
-    // Insert ke database dengan doc_subtype
-    $sql_insert = "INSERT INTO docu (user_id, user_name, email, dept, no_doc, no_rev, rev_to, doc_type, doc_subtype, section, device, process, title, description, category, iso, seq_train, dir_train, file, master_file, status, tgl_upload, revision_history, original_section, original_dept) 
-                   VALUES ('$nama', '$uploader_name', '$email', '$dep', '$nodoc', '$norev', '$revto', '$type', " . ($doc_subtype ? "'$doc_subtype'" : "NULL") . ", '$section', '$device', '$process', '$title', '$desc', '$cat', '$iso', '$seqtrain', '$dirtrain', '$doc_filename', '$master_filename', '$sta_doc', '$tgl', '$hist', '$original_section', '$original_dept')";
-
-    if (mysqli_query($link, $sql_insert)) {
-        ?>
-        <script language='javascript'>
-            alert('Document berhasil diupload!');
-            document.location='index.php';
-        </script>
-        <?php
-    } else {
-        ?>
-        <script language='javascript'>
-            alert('Gagal menyimpan ke database: <?php echo mysqli_error($link); ?>');
-            document.location='upload.php';
-        </script>
-        <?php
-    }
-    exit;
-}
 ?>
 
 <!-- jQuery -->
@@ -262,7 +84,6 @@ function finishAjax(id, response) {
 </script>
 
 <script>
-// Function to prevent spaces in No. Document field
 function preventSpaces(event) {
     if (event.which === 32 || event.keyCode === 32) {
         event.preventDefault();
@@ -271,12 +92,10 @@ function preventSpaces(event) {
     }
 }
 
-// Function to remove spaces if pasted
 function removeSpaces(element) {
     element.value = element.value.replace(/\s/g, '');
 }
 
-// Function to allow only numbers in No. Revision field
 function allowOnlyNumbers(event) {
     if ([46, 8, 9, 27, 13].indexOf(event.keyCode) !== -1 ||
         (event.keyCode === 65 && event.ctrlKey === true) ||
@@ -292,7 +111,6 @@ function allowOnlyNumbers(event) {
     }
 }
 
-// Function to remove non-numeric characters if pasted
 function removeNonNumeric(element) {
     element.value = element.value.replace(/[^0-9]/g, '');
 }
@@ -305,7 +123,6 @@ function validasi(){
     var cat = formulir.cat.value;
     var title = formulir.title1.value;
     var desc = formulir.desc.value;
-       
     var file = formulir.file.files[0];
     var master = formulir.master.files[0];
 
@@ -357,66 +174,6 @@ function validasi(){
     }
     return true;
 }
-</script>
-
-<!-- JavaScript untuk Dynamic Subtype -->
-<script>
-// Data document types dari PHP ke JavaScript
-var documentTypes = <?php echo json_encode($docTypes); ?>;
-
-$(document).ready(function() {
-    // Event handler saat document type berubah
-    $('#doc_type').change(function() {
-        var selectedType = $(this).val();
-        var subtypeContainer = $('#subtype_container');
-        var subtypeSelect = $('#doc_subtype');
-        var requiredIndicator = $('#subtype_required_indicator');
-        
-        // Reset subtype
-        subtypeSelect.html('<option value="">-- Pilih Subtype --</option>');
-        subtypeContainer.hide();
-        subtypeSelect.removeAttr('required');
-        if (requiredIndicator.length) requiredIndicator.hide();
-        
-        if (selectedType && selectedType !== '-') {
-            // Cari document type yang dipilih
-            var docType = null;
-            for (var i = 0; i < documentTypes.length; i++) {
-                if (documentTypes[i].name === selectedType) {
-                    docType = documentTypes[i];
-                    break;
-                }
-            }
-            
-            // Jika punya submenu, tampilkan dropdown subtype
-            if (docType && docType.has_submenu === true && docType.submenu && docType.submenu.length > 0) {
-                // Populate subtype options
-                $.each(docType.submenu, function(index, sub) {
-                    subtypeSelect.append(
-                        $('<option></option>')
-                            .attr('value', sub.name)
-                            .text(sub.name)
-                    );
-                });
-                
-                // Tampilkan container dan set required
-                subtypeContainer.show();
-                subtypeSelect.attr('required', 'required');
-                if (requiredIndicator.length) requiredIndicator.show();
-            }
-        }
-    });
-
-    // Trigger change jika ada prefill
-    <?php if ($prefill_type !== ''): ?>
-    $('#doc_type').trigger('change');
-    <?php if ($prefill_subtype !== ''): ?>
-    setTimeout(function() {
-        $('#doc_subtype').val('<?php echo addslashes($prefill_subtype); ?>');
-    }, 100);
-    <?php endif; ?>
-    <?php endif; ?>
-});
 </script>
 
 <br />
@@ -485,7 +242,7 @@ $(document).ready(function() {
         </td>
     </tr>
 
-    <!-- DOCUMENT TYPE (DYNAMIC) -->
+    <!-- DOCUMENT TYPE (DYNAMIC) - TANPA SUBTYPE -->
     <tr>
         <td>Document Type <span style="color:red;">*</span></td>
         <td>:</td>
@@ -507,21 +264,17 @@ $(document).ready(function() {
                 echo '</select>';
             } else {
                 echo '<select name="type1" id="doc_type" class="form-control" required>';
-                echo '<option value="-"> --- No Document Types Available --- </option>';
+                echo '<option value="-"> --- Select Type --- </option>';
+                echo '<option value="Form"> Form </option>';
+                echo '<option value="Procedure"> Procedure </option>';
+                echo '<option value="WI"> WI </option>';
+                echo '<option value="Monitor Sample"> Monitor Sample </option>';
+                echo '<option value="MSDS"> MSDS </option>';
+                echo '<option value="Material Spec"> Material Spec </option>';
+                echo '<option value="ROHS"> ROHS </option>';
                 echo '</select>';
             }
             ?>
-        </td>
-    </tr>
-
-    <!-- DOCUMENT SUBTYPE (DYNAMIC - akan muncul jika ada submenu) -->
-    <tr id="subtype_container" style="<?php echo !empty($prefill_subtype) ? '' : 'display: none;'; ?>">
-        <td>Document Subtype <span style="color:red;" id="subtype_required_indicator">*</span></td>
-        <td>:</td>
-        <td>
-            <select name="doc_subtype" id="doc_subtype" class="form-control">
-                <option value="">-- Pilih Subtype --</option>
-            </select>
         </td>
     </tr>
 
@@ -661,5 +414,258 @@ $(document).ready(function() {
 </form>
 </div>
 </div>
+
+<?php
+// ===== PROSES SUBMIT FORM =====
+if (isset($_POST['submit'])) {
+    // sanitize inputs
+    $nama = isset($_POST['user']) ? mysqli_real_escape_string($link, trim($_POST['user'])) : '';
+    $email = isset($_POST['email']) ? mysqli_real_escape_string($link, trim($_POST['email'])) : '';
+    $dep = isset($_POST['dep']) ? mysqli_real_escape_string($link, trim($_POST['dep'])) : '';
+    $nodoc = isset($_POST['nodoc']) ? mysqli_real_escape_string($link, trim($_POST['nodoc'])) : '';
+    $norev = isset($_POST['norev']) ? mysqli_real_escape_string($link, trim($_POST['norev'])) : '';
+    $revto = isset($_POST['revto']) ? mysqli_real_escape_string($link, trim($_POST['revto'])) : '';
+    
+    $type = isset($_POST['type1']) ? trim($_POST['type1']) : '';
+    if (($type == '' || $type == '-') && isset($_GET['type']) && trim($_GET['type']) !== '') {
+        $type = trim($_GET['type']);
+    }
+    $type = mysqli_real_escape_string($link, $type);
+    
+    $section = isset($_POST['section']) ? mysqli_real_escape_string($link, trim($_POST['section'])) : '';
+    $device = isset($_POST['device']) ? mysqli_real_escape_string($link, trim($_POST['device'])) : '';
+    
+    // SMART LOGIC: Jika device tidak dipilih atau '-', set ke default berdasarkan context
+    if ($device == '-' || $device == '') {
+        // Jika section adalah Production dan device kosong, set ke 'General Production'
+        if (stripos($section, 'production') !== false) {
+            $device = 'General Production';
+        } else {
+            // Non-production = set ke '-' (akan masuk ke "Other" submenu)
+            $device = '-';
+        }
+    }
+    
+    $process = isset($_POST['proc']) ? mysqli_real_escape_string($link, trim($_POST['proc'])) : '';
+    $title = isset($_POST['title1']) ? mysqli_real_escape_string($link, trim($_POST['title1'])) : '';
+    $desc = isset($_POST['desc']) ? mysqli_real_escape_string($link, trim($_POST['desc'])) : '';
+    $cat = isset($_POST['cat']) ? mysqli_real_escape_string($link, trim($_POST['cat'])) : '';
+    $iso = isset($_POST['iso']) ? intval($_POST['iso']) : 0;
+    $seqtrain = isset($_POST['seqtrain'])? intval($_POST['seqtrain']):0;
+    $dirtrain = isset($_POST['dirtrain'])? intval($_POST['dirtrain']):0;
+    $tgl = date('d-m-Y');
+    $state = isset($_POST['state']) ? mysqli_real_escape_string($link, trim($_POST['state'])) : '';
+
+    // Server-side validation
+    if (strpos($nodoc, ' ') !== false) {
+        ?>
+        <script language='javascript'>
+            alert('Nomor Dokumen tidak boleh mengandung spasi');
+            document.location='upload.php';
+        </script>
+        <?php
+        exit;
+    }
+
+    if (!empty($norev) && !preg_match('/^\d+$/', $norev)) {
+        ?>
+        <script language='javascript'>
+            alert('Nomor Revisi hanya boleh berisi angka');
+            document.location='upload.php';
+        </script>
+        <?php
+        exit;
+    }
+
+    if (!isset($_FILES["file"]) || $_FILES["file"]["error"] == UPLOAD_ERR_NO_FILE) {
+        ?>
+        <script language='javascript'>
+            alert('File Document harus diupload');
+            document.location='upload.php';
+        </script>
+        <?php
+        exit;
+    }
+
+    if (!isset($_FILES["master"]) || $_FILES["master"]["error"] == UPLOAD_ERR_NO_FILE) {
+        ?>
+        <script language='javascript'>
+            alert('File Master harus diupload');
+            document.location='upload.php';
+        </script>
+        <?php
+        exit;
+    }
+
+    // Get uploader name AND original section
+    $user_query = "SELECT name, section FROM users WHERE username = '".mysqli_real_escape_string($link, $nama)."' LIMIT 1";
+    $user_result = mysqli_query($link, $user_query);
+    $user_data = mysqli_fetch_array($user_result);
+    $uploader_name = isset($user_data['name']) ? mysqli_real_escape_string($link, $user_data['name']) : mysqli_real_escape_string($link, $nama);
+    $original_section = isset($user_data['section']) ? mysqli_real_escape_string($link, $user_data['section']) : '';
+    $original_dept = $dep;
+
+    // Determine status
+    if ($cat=='External') {
+        $sta_doc='Secured';
+    } else {
+        $sta_doc='Review';
+    }
+
+    $cek_opl = substr($nodoc, 0,3);
+    if($cek_opl=='OPL') {
+        $sta_doc='Secured';
+    }
+    if($type=='Monitor Sample' || $type=='Sample') {
+        $sta_doc='Secured';
+    }
+    if($type=='MSDS') {
+        $sta_doc='Secured'; 
+    }
+    if($type=='Material Spec' || $type=='MS & ROHS') {
+        $sta_doc='Secured'; 
+    }
+    if($type=='ROHS') {
+        $sta_doc='Secured'; 
+    }
+
+    $hist = isset($_POST['hist']) ? mysqli_real_escape_string($link, trim($_POST['hist'])) : '';
+
+    // Sanitize type for folder name
+    $safe_type = trim($type);
+    $safe_type = preg_replace('/[^A-Za-z0-9 _\-&]/', '', $safe_type);
+    if ($safe_type === '') $safe_type = 'others';
+    $safe_dir_name = str_replace(' ', '_', $safe_type) . '/';
+
+    // Ensure target dir exists
+    $target_dir = $safe_dir_name;
+    if (!is_dir($target_dir)) {
+        if (!@mkdir($target_dir, 0755, true)) {
+            $target_dir = 'others/';
+            if (!is_dir($target_dir)) @mkdir($target_dir, 0755, true);
+        }
+    }
+
+    // Process document file
+    $doc_filename = basename($_FILES["file"]["name"]);
+    $doc_filename = str_replace("'", "", $doc_filename);
+    $target_file_doc = $target_dir . $doc_filename;
+
+    if (!move_uploaded_file($_FILES["file"]["tmp_name"], $target_file_doc)) {
+        ?>
+        <script language='javascript'>
+            alert('Upload File Document gagal. Periksa permission folder.');
+            document.location='upload.php';
+        </script>
+        <?php
+        exit;
+    }
+
+    // Process master file
+    $target_dir_master = "master/";
+    if (!is_dir($target_dir_master)) @mkdir($target_dir_master, 0755, true);
+    $master_filename = basename($_FILES["master"]["name"]);
+    $master_filename = str_replace("'", "", $master_filename);
+    $target_file_master = $target_dir_master . $master_filename;
+
+    if ($_FILES["master"]["size"] > 15000000) {
+        ?>
+        <script language='javascript'>
+            alert('Ukuran File Master Terlalu Besar, Max 15Mb');
+            document.location='upload.php';
+        </script>
+        <?php
+        exit;
+    }
+
+    if (!move_uploaded_file($_FILES["master"]["tmp_name"], $target_file_master)) {
+        ?>
+        <script language='javascript'>
+            alert('Upload File Master gagal. Periksa permission folder.');
+            document.location='upload.php';
+        </script>
+        <?php
+        exit;
+    }
+
+    // INSERT ke database - SESUAI STRUKTUR ASLI
+    $nama_file = mysqli_real_escape_string($link, $doc_filename);
+    $nama_master = mysqli_real_escape_string($link, $master_filename);
+
+    $sql="INSERT INTO docu(no_drf,user_id,uploader_name,email,dept,original_dept,no_doc,no_rev,rev_to,doc_type,section,original_section,device,process,title,descript,iso,seqtrain,dirtrain,file,history,status,tgl_upload,category,final,file_asli,reminder)
+    VALUES (0,'$nama','$uploader_name','$email','$dep','$original_dept','$nodoc','$norev','$revto','$type','$section','$original_section','$device','$process','$title','$desc',$iso,$seqtrain,$dirtrain,'$nama_file','$hist','$sta_doc','$tgl','$cat','','$nama_master',0)";
+
+    $res=mysqli_query($link, $sql);
+    $drf=mysqli_insert_id($link);
+
+    if($res) {
+        // Process related docs
+        if (isset($_POST["rel"]) && is_array($_POST["rel"])) {
+            foreach($_POST["rel"] as $rel_item) {
+                // Skip jika kosong atau tidak ada
+                if (!isset($rel_item) || trim($rel_item) == '') {
+                    continue;
+                }
+                
+                $no_doc = mysqli_real_escape_string($link, trim($rel_item));
+                
+                if ($no_doc != '') {
+                    // Gunakan NULL atau 0 untuk auto-increment, bukan string kosong
+                    $q=mysqli_query($link, "INSERT INTO rel_doc(id,no_drf,no_doc) VALUES (NULL,$drf,'$no_doc')"); 
+                }
+            }
+        }
+
+        if ($norev=='0') {
+            $insert="INSERT INTO distribusi(id_dis,no_drf,pic,give,date_give,location,receiver,retrieve,retrieve_from,retrieve_date)
+            VALUES(NULL,$drf,'','','','','','','','')";
+            $result=mysqli_query($link, $insert);
+        }
+
+        // Decide navigation
+        if(($state != 'Admin' || $cat != 'External' ) && ($type!='Material Spec' && $type!='ROHS' && $type!='MSDS')) {
+            ?>
+            <script language='javascript'>
+                alert('Document Uploaded, please set the approvers');
+                document.location='set_approver.php?id_doc=<?php echo $drf?>&section=<?php echo urlencode($section)?>&type=<?php echo urlencode($type)?>&iso=<?php echo $iso?>&nodoc=<?php echo urlencode($nodoc);?>&title=<?php echo urlencode($title);?>';
+            </script>
+            <?php 
+        } else {
+            ?>
+            <script language='javascript'>
+                alert('Document Uploaded');
+                document.location='upload.php';
+            </script>
+            <?php
+        }
+
+        // Send email notification (non-blocking)
+        require 'PHPMailer/PHPMailerAutoload.php';
+        $mail = new PHPMailer();
+        $mail->IsSMTP();
+        include 'smtp.php';
+        $mail->setFrom('dc_admin@ssi.sharp-world.com');
+        $mail->FromName = "Admin Document Online System";
+        $mail->addAddress($email);
+        if($cat=='External') {
+            $mail->addAddress("qa01@ssi.sharp-world.com");
+        }
+        $mail->WordWrap = 50;
+        $mail->IsHTML(true);
+        $mail->Subject  = "Document Uploaded";
+        $mail->Body = "Attention Mr./Mrs. : Originator <br /> This following <span style='color:green'>".htmlspecialchars($type)."</span> document was 
+        <span style='color:green'>Uploaded</span> into the System <br /> No. Document : ".htmlspecialchars($nodoc)."<br /> Revision History : ".nl2br(htmlspecialchars($hist))."<br />
+        Please Login into <a href='192.168.132.34/document'>Document Online System</a> to monitor the Document, Thank You";
+        @$mail->Send();
+    } else {
+        ?>
+        <script language='javascript'>
+            alert('Document Upload Failed: <?php echo addslashes(mysqli_error($link)); ?>');
+            document.location='upload.php';
+        </script>
+        <?php
+    }
+}
+?>
 
 <script src="bootstrap/js/bootstrap.min.js"></script>
