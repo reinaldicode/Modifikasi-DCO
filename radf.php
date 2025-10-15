@@ -139,7 +139,7 @@
             <tr>
               <td style="vertical-align:bottom;">
                 Proposed by: <?php echo htmlspecialchars($nama); ?><br />
-                <small style="color: #666;">From: <?php echo htmlspecialchars($display_section); ?> - <?php echo htmlspecialchars($display_dept); ?></small>
+                <small style="color: #666;">From: <?php echo htmlspecialchars($display_section); ?> </small>
               </td>
             </tr>
           </table>

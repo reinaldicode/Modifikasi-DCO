@@ -1,0 +1,21 @@
+[2025-10-01 01:09:29] Mulai login_proc.php
+[2025-10-01 01:09:29] Mencoba include 'koneksi.php'
+[2025-10-01 01:09:29] DB connected. Host info: localhost via TCP/IP
+[2025-10-01 01:09:29] POST diterima. username raw: '003429' -> processed: '003429'. password length: 6 (masked)
+[2025-10-01 01:09:29] Mencoba koneksi LDAP ke ldap://ASIASHARP.com:389 untuk user GZB003429@ASIASHARP.COM
+[2025-10-01 01:09:29] LDAP bind GAGAL: Can't contact LDAP server
+[2025-10-01 01:09:29] LDAP tidak berhasil atau tidak tersedia => cek DB local users.
+[2025-10-01 01:09:29] DB lookup selesai. rows = 1
+[2025-10-01 01:09:29] Login DB SUCCESS untuk user 003429 (password cocok). Set session.
+[2025-10-01 01:09:29] Session data set: username=003429, name=M. Yusup AL
+[2025-10-01 01:09:29] DEBUG mode ON: Tidak redirect. Seharusnya redirect ke index_login.php
+[2025-10-01 01:10:33] Mulai login_proc.php
+[2025-10-01 01:10:33] Mencoba include 'koneksi.php'
+[2025-10-01 01:10:33] DB connected. Host info: localhost via TCP/IP
+[2025-10-01 01:10:33] POST diterima. username raw: '003429' -> processed: '003429'. password length: 6 (masked)
+[2025-10-01 01:10:33] Mencoba koneksi LDAP ke ldap://ASIASHARP.com:389 untuk user GZB003429@ASIASHARP.COM
+[2025-10-01 01:10:34] LDAP bind GAGAL: Can't contact LDAP server
+[2025-10-01 01:10:34] LDAP tidak berhasil atau tidak tersedia => cek DB local users.
+[2025-10-01 01:10:34] DB lookup selesai. rows = 1
+[2025-10-01 01:10:34] Login DB SUCCESS untuk user 003429 (password cocok). Set session.
+[2025-10-01 01:10:34] Session data set: username=003429, name=M. Yusup AL

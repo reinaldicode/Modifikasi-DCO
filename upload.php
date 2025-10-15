@@ -12,6 +12,7 @@ if (file_exists($jsonFile)) {
 
 // Prefill dari GET parameter
 $prefill_type = isset($_GET['type']) ? trim($_GET['type']) : '';
+$prefill_subtype = isset($_GET['subtype']) ? trim($_GET['subtype']) : '';
 ?>
 
 <!-- jQuery -->
@@ -68,12 +69,6 @@ function finishAjax1(id, response) {
         });
         return false;
     });
-
-    function finishAjax(id, response) {
-        $('#wait_2').hide();
-        $('#'+id).html(unescape(response));
-        $('#'+id).fadeIn();
-    }
 }
 
 function finishAjax(id, response) {
@@ -416,7 +411,7 @@ function validasi(){
 </div>
 
 <?php
-// ===== PROSES SUBMIT FORM =====
+// ===== PROSES SUBMIT FORM (Hanya satu blok, versi lengkap) =====
 if (isset($_POST['submit'])) {
     // sanitize inputs
     $nama = isset($_POST['user']) ? mysqli_real_escape_string($link, trim($_POST['user'])) : '';
@@ -588,7 +583,7 @@ if (isset($_POST['submit'])) {
         exit;
     }
 
-    // INSERT ke database - SESUAI STRUKTUR ASLI
+    // INSERT ke database - SESUAI STRUKTUR ASLI (tanpa doc_subtype)
     $nama_file = mysqli_real_escape_string($link, $doc_filename);
     $nama_master = mysqli_real_escape_string($link, $master_filename);
 
@@ -610,7 +605,6 @@ if (isset($_POST['submit'])) {
                 $no_doc = mysqli_real_escape_string($link, trim($rel_item));
                 
                 if ($no_doc != '') {
-                    // Gunakan NULL atau 0 untuk auto-increment, bukan string kosong
                     $q=mysqli_query($link, "INSERT INTO rel_doc(id,no_drf,no_doc) VALUES (NULL,$drf,'$no_doc')"); 
                 }
             }
@@ -640,23 +634,31 @@ if (isset($_POST['submit'])) {
         }
 
         // Send email notification (non-blocking)
-        require 'PHPMailer/PHPMailerAutoload.php';
-        $mail = new PHPMailer();
-        $mail->IsSMTP();
-        include 'smtp.php';
-        $mail->setFrom('dc_admin@ssi.sharp-world.com');
-        $mail->FromName = "Admin Document Online System";
-        $mail->addAddress($email);
-        if($cat=='External') {
-            $mail->addAddress("qa01@ssi.sharp-world.com");
+        if (file_exists('PHPMailer/PHPMailerAutoload.php')) {
+            require 'PHPMailer/PHPMailerAutoload.php';
+            
+            $mail = new PHPMailer();
+
+            // penerima
+            $mail->addAddress($email);
+            if($cat=='External')
+            {
+                $mail->addAddress("qa01@ssi.sharp-world.com");
+            }
+            
+            $mail->WordWrap = 50;
+            $mail->IsHTML(true);
+                
+            $mail->Subject  = "Document Uploaded" ;
+            $mail->Body     =  "Attention Mr./Mrs. : Originator <br /> This following <span style='color:green'>".htmlspecialchars($type)."</span> document was 
+            <span style='color:green'>Uploaded</span> into the System <br /> No. Document : ".htmlspecialchars($nodoc)."<br /> Revision History : ".nl2br(htmlspecialchars($hist))."<br />
+            Please Login into <a href='192.168.132.34/document'>Document Online System</a> to monitor the Document, Thank You";
+
+            // try send but don't break user flow on failure
+            if(!$mail->Send()) {
+                // log if needed: error_log("Mailer error: ".$mail->ErrorInfo);
+            }
         }
-        $mail->WordWrap = 50;
-        $mail->IsHTML(true);
-        $mail->Subject  = "Document Uploaded";
-        $mail->Body = "Attention Mr./Mrs. : Originator <br /> This following <span style='color:green'>".htmlspecialchars($type)."</span> document was 
-        <span style='color:green'>Uploaded</span> into the System <br /> No. Document : ".htmlspecialchars($nodoc)."<br /> Revision History : ".nl2br(htmlspecialchars($hist))."<br />
-        Please Login into <a href='192.168.132.34/document'>Document Online System</a> to monitor the Document, Thank You";
-        @$mail->Send();
     } else {
         ?>
         <script language='javascript'>
