@@ -173,13 +173,58 @@ if (isset($_POST['submit'])) {
     $sql_insert = "INSERT INTO docu (user_id, user_name, email, dept, no_doc, no_rev, rev_to, doc_type, doc_subtype, section, device, process, title, description, category, iso, seq_train, dir_train, file, master_file, status, tgl_upload, revision_history, original_section, original_dept) 
                    VALUES ('$nama', '$uploader_name', '$email', '$dep', '$nodoc', '$norev', '$revto', '$type', " . ($doc_subtype ? "'$doc_subtype'" : "NULL") . ", '$section', '$device', '$process', '$title', '$desc', '$cat', '$iso', '$seqtrain', '$dirtrain', '$doc_filename', '$master_filename', '$sta_doc', '$tgl', '$hist', '$original_section', '$original_dept')";
 
-    if (mysqli_query($link, $sql_insert)) {
-        ?>
-        <script language='javascript'>
-            alert('Document berhasil diupload!');
-            document.location='index.php';
-        </script>
-        <?php
+    $res = mysqli_query($link, $sql_insert);
+    
+    if($res) {
+        // Get last inserted DRF
+        $drf = mysqli_insert_id($link);
+        
+        // Decide post-insert navigation
+        if(($state != 'Admin' or $cat != 'External' ) and ($type!='Material Spec' and $type!='ROHS' and $type!='MSDS' and $type!='Sample' and $type!='Monitor Sample'))
+        {
+            ?>
+            <script language='javascript'>
+                alert('Document Uploaded, please set the approvers');
+                document.location='set_approver.php?id_doc=<?php echo $drf?>&section=<?php echo urlencode($section)?>&type=<?php echo urlencode($type)?>&iso=<?php echo $iso?>&nodoc=<?php echo urlencode($nodoc);?>&title=<?php echo urlencode($title);?>';
+            </script>
+            <?php 
+        }
+        else
+        {
+            ?>
+            <script language='javascript'>
+                alert('Document Uploaded');
+                document.location='index.php';
+            </script>
+            <?php
+        }
+
+        // Send notification email (non-blocking)
+        if (file_exists('PHPMailer/PHPMailerAutoload.php')) {
+            require 'PHPMailer/PHPMailerAutoload.php';
+            
+            $mail = new PHPMailer();
+
+            // penerima
+            $mail->addAddress($email);
+            if($cat=='External')
+            {
+                $mail->addAddress("qa01@ssi.sharp-world.com");
+            }
+            
+            $mail->WordWrap = 50;
+            $mail->IsHTML(true);
+                
+            $mail->Subject  = "Document Uploaded" ;
+            $mail->Body     =  "Attention Mr./Mrs. : Originator <br /> This following <span style='color:green'>".htmlspecialchars($type)."</span> document was 
+            <span style='color:green'>Uploaded</span> into the System <br /> No. Document : ".htmlspecialchars($nodoc)."<br /> Revision History : ".nl2br(htmlspecialchars($hist))."<br />
+            Please Login into <a href='192.168.132.34/document'>Document Online System</a> to monitor the Document, Thank You";
+
+            // try send but don't break user flow on failure
+            if(!$mail->Send()) {
+                // log if needed: error_log("Mailer error: ".$mail->ErrorInfo);
+            }
+        }
     } else {
         ?>
         <script language='javascript'>
