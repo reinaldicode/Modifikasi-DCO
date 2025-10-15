@@ -74,9 +74,7 @@ $(document).ready(function () {
         }, function(response){
             $('#result_process').fadeOut();
             setTimeout(function(){ 
-                $('#wait_device').hide();
-                $('#result_process').html(response);
-                $('#result_process').fadeIn();
+                finishAjaxProcess('result_process', escape(response));
             }, 400);
         });
         return false;
@@ -95,9 +93,7 @@ $(document).ready(function () {
         }, function(response){
             $('#result_device').fadeOut();
             setTimeout(function(){ 
-                $('#wait_section').hide();
-                $('#result_device').html(response);
-                $('#result_device').fadeIn();
+                finishAjaxDevice('result_device', escape(response));
             }, 400);
         });
         return false;
@@ -136,6 +132,39 @@ $(document).ready(function () {
         $('#modalSosialisasi').modal('show');
     });
 });
+
+// Function untuk handle response device dropdown
+function finishAjaxDevice(id, response) {
+    $('#wait_section').hide();
+    $('#'+id).html(unescape(response));
+    $('#'+id).fadeIn();
+
+    // Re-attach event handler untuk device -> process setelah device dropdown di-load
+    <?php if ($filterConfig['process']): ?>
+    $('#wait_device').hide();
+    $('#device').change(function(){
+        $('#wait_device').show();
+        $('#result_process').hide();
+        $.get("func.php", {
+            func: "device",
+            drop_var2: $('#device').val()
+        }, function(response){
+            $('#result_process').fadeOut();
+            setTimeout(function(){ 
+                finishAjaxProcess('result_process', escape(response));
+            }, 400);
+        });
+        return false;
+    });
+    <?php endif; ?>
+}
+
+// Function untuk handle response process dropdown
+function finishAjaxProcess(id, response) {
+    $('#wait_device').hide();
+    $('#'+id).html(unescape(response));
+    $('#'+id).fadeIn();
+}
 </script>
 
 <br />
@@ -180,23 +209,49 @@ $(document).ready(function () {
                     <td>:</td>
                     <td>
                         <?php if ($filterConfig['section']): ?>
+                            <!-- Jika ada section filter, device dropdown akan di-load via AJAX dari func.php -->
                             <span id="wait_section" style="display: none;"><img alt="Please Wait" src="images/wait.gif"/></span>
                             <span id="result_device" style="display: none;"></span>
                         <?php else: ?>
                             <?php 
-                            $dev = "SELECT * FROM device WHERE status='Aktif' ORDER BY name";
+                            // Jika TIDAK ada section filter, tampilkan device dropdown langsung
+                            $dev = "SELECT * FROM device ORDER BY name";
                             $sql_dev = mysqli_query($link, $dev);
+                            
+                            // List device hardcoded yang pasti muncul (sesuai screenshot)
+                            $hardcodedDevices = [
+                                'General production',
+                                'General PC',
+                                'New Remocon',
+                                'PI',
+                                'PC300N',
+                                'PC400 N',
+                                'PT-GL',
+                                'SC-63',
+                                'SC-63 Matrix',
+                                'DDS',
+                                'Smoke Sensor',
+                                'SOP 4 PIN',
+                                'SSR 400'
+                            ];
                             ?>
                             <select name="device" id="device" class="form-control">
-                                <option value=""> --- Select Device --- </option>
-                                <option value="General Production" <?php echo (isset($_GET['device']) && $_GET['device'] == 'General Production') ? 'selected' : ''; ?>>General Production</option>
-                                <?php while($data_dev = mysqli_fetch_array($sql_dev)) { 
-                                    $selected = (isset($_GET['device']) && $_GET['device'] == $data_dev['name']) ? 'selected' : '';
+                                <option value="" selected="selected"> --- Select Device --- </option>
+                                <?php 
+                                // Tampilkan semua hardcoded devices
+                                foreach ($hardcodedDevices as $dev_name) {
+                                    $selected = (isset($_GET['device']) && $_GET['device'] == $dev_name) ? 'selected' : '';
+                                    echo '<option value="' . htmlspecialchars($dev_name) . '" ' . $selected . '>' . htmlspecialchars($dev_name) . '</option>';
+                                }
+                                
+                                // Tambahkan device dari database yang belum ada di hardcoded list
+                                while($data_dev = mysqli_fetch_array($sql_dev)) { 
+                                    if (!in_array($data_dev['name'], $hardcodedDevices)) {
+                                        $selected = (isset($_GET['device']) && $_GET['device'] == $data_dev['name']) ? 'selected' : '';
+                                        echo '<option value="' . htmlspecialchars($data_dev['name']) . '" ' . $selected . '>' . htmlspecialchars($data_dev['name']) . '</option>';
+                                    }
+                                } 
                                 ?>
-                                <option value="<?php echo htmlspecialchars($data_dev['name']); ?>" <?php echo $selected; ?>>
-                                    <?php echo htmlspecialchars($data_dev['name']); ?>
-                                </option>
-                                <?php } ?>
                             </select>
                         <?php endif; ?>
                     </td>
@@ -208,8 +263,26 @@ $(document).ready(function () {
                     <td>Process</td>
                     <td>:</td>
                     <td>
-                        <span id="wait_device" style="display: none;"><img alt="Please Wait" src="images/wait.gif"/></span>
-                        <span id="result_process" style="display: none;"></span>
+                        <?php if ($filterConfig['device']): ?>
+                            <span id="wait_device" style="display: none;"><img alt="Please Wait" src="images/wait.gif"/></span>
+                            <span id="result_process" style="display: none;"></span>
+                        <?php else: ?>
+                            <?php 
+                            // Jika tidak ada device filter, tampilkan semua process
+                            $proc = "SELECT DISTINCT process FROM docu WHERE process IS NOT NULL AND process != '' ORDER BY process";
+                            $sql_proc = mysqli_query($link, $proc);
+                            ?>
+                            <select name="proc" class="form-control">
+                                <option value=""> --- Select Process --- </option>
+                                <?php while($data_proc = mysqli_fetch_array($sql_proc)) { 
+                                    $selected = (isset($_GET['proc']) && $_GET['proc'] == $data_proc['process']) ? 'selected' : '';
+                                ?>
+                                <option value="<?php echo htmlspecialchars($data_proc['process']); ?>" <?php echo $selected; ?>>
+                                    <?php echo htmlspecialchars($data_proc['process']); ?>
+                                </option>
+                                <?php } ?>
+                            </select>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endif; ?>
@@ -259,14 +332,22 @@ $(document).ready(function () {
 <?php
 // Build query jika form disubmit
 if (isset($_GET['submit'])) {
+    // WHERE condition untuk doc_type
     $whereConditions = ["doc_type = '" . mysqli_real_escape_string($link, $type) . "'"];
     
-    // Subtype condition
+    // LOGIC: Filter otomatis berdasarkan submenu menggunakan kolom device
     if (!empty($subtype)) {
-        $subtype_sql = mysqli_real_escape_string($link, $subtype);
-        $whereConditions[] = "doc_subtype = '$subtype_sql'";
-    } else {
-        $whereConditions[] = "(doc_subtype IS NULL OR doc_subtype = '')";
+        $subtype_lower = strtolower($subtype);
+        
+        // PRODUCTION submenu = dokumen yang punya device production
+        if (strpos($subtype_lower, 'production') !== false) {
+            $whereConditions[] = "(device IS NOT NULL AND device != '' AND device != '-' AND device != 'General Production')";
+        }
+        // OTHER submenu = dokumen tanpa device spesifik atau general
+        elseif (strpos($subtype_lower, 'other') !== false) {
+            $whereConditions[] = "(device IS NULL OR device = '' OR device = '-' OR device = 'General Production')";
+        }
+        // Untuk submenu lainnya yang tidak menggunakan pattern production/other, tidak ada filter tambahan
     }
     
     // Apply filters berdasarkan input user
@@ -459,6 +540,17 @@ if (isset($_GET['submit'])) {
     echo "<div class='alert alert-info' style='margin-top:20px;'>";
     echo "<h4><span class='glyphicon glyphicon-info-sign'></span> Cara Menggunakan</h4>";
     echo "<p>Silakan pilih filter di sidebar kiri, kemudian klik tombol <strong>Show</strong> untuk menampilkan dokumen.</p>";
+    
+    // Tampilkan info submenu logic jika ada
+    if (!empty($subtype)) {
+        $subtype_lower = strtolower($subtype);
+        if (strpos($subtype_lower, 'production') !== false) {
+            echo "<p class='text-success'><strong>Info:</strong> Submenu ini menampilkan dokumen <strong>Production</strong> (dengan device production).</p>";
+        } elseif (strpos($subtype_lower, 'other') !== false) {
+            echo "<p class='text-info'><strong>Info:</strong> Submenu ini menampilkan dokumen <strong>Other/General</strong> (tanpa device spesifik).</p>";
+        }
+    }
+    
     echo "</div>";
 }
 ?>

@@ -28,7 +28,8 @@
                     "status": true,
                     "category": true
                 },
-                "legacy_file": "wi_prod.php"
+                "legacy_file": "wi_prod.php",
+                "_note": "Shows documents with device != '-' (production devices)"
             },
             {
                 "id": "wi_other",
@@ -40,7 +41,8 @@
                     "status": true,
                     "category": false
                 },
-                "legacy_file": "wi_other.php"
+                "legacy_file": "wi_other.php",
+                "_note": "Shows documents with device = '-' or empty (non-production)"
             }
         ],
         "filter_config": {
@@ -66,7 +68,8 @@
                     "status": true,
                     "category": false
                 },
-                "legacy_file": "form_prod.php"
+                "legacy_file": "form_prod.php",
+                "_note": "Shows documents with device != '-' (production devices)"
             },
             {
                 "id": "form_other",
@@ -78,7 +81,8 @@
                     "status": true,
                     "category": false
                 },
-                "legacy_file": "form_other.php"
+                "legacy_file": "form_other.php",
+                "_note": "Shows documents with device = '-' or empty (non-production)"
             }
         ],
         "filter_config": {
@@ -160,63 +164,32 @@
         "legacy_file": "obs_login.php"
     },
     {
-        "id": "pe",
-        "name": "PE",
+        "id": "hss",
+        "name": "HSS",
         "has_submenu": true,
         "submenu": [
             {
-                "id": "pe_production",
-                "name": "PE production",
-                "use_custom_file": false,
-                "custom_file": "",
+                "id": "hss_prod",
+                "name": "Hss prod",
                 "filter_config": {
                     "section": true,
-                    "device": true,
-                    "process": true,
-                    "status": true,
-                    "category": false
-                },
-                "is_legacy": false
-            }
-        ],
-        "filter_config": {
-            "section": true,
-            "device": true,
-            "process": true,
-            "status": true,
-            "category": false
-        }
-    },
-    {
-        "id": "apqp",
-        "name": "APQP",
-        "has_submenu": true,
-        "submenu": [
-            {
-                "id": "apqp_prod",
-                "name": "apqp prod",
-                "use_custom_file": false,
-                "custom_file": "",
-                "filter_config": {
-                    "section": true,
-                    "device": true,
-                    "process": true,
-                    "status": true,
-                    "category": false
-                },
-                "is_legacy": false
-            },
-            {
-                "id": "apqp_other",
-                "name": "apqp other",
-                "use_custom_file": false,
-                "custom_file": "",
-                "filter_config": {
-                    "section": true,
-                    "device": true,
+                    "device": false,
                     "process": false,
                     "status": true,
                     "category": true
+                }
+            },
+            {
+                "id": "hss_other",
+                "name": "Hss other",
+                "use_custom_file": false,
+                "custom_file": "",
+                "filter_config": {
+                    "section": true,
+                    "device": true,
+                    "process": true,
+                    "status": true,
+                    "category": false
                 },
                 "is_legacy": false
             }
@@ -224,9 +197,41 @@
         "filter_config": {
             "section": true,
             "device": true,
+            "process": false,
+            "status": true,
+            "category": false
+        },
+        "use_custom_file": false,
+        "custom_file": ""
+    },
+    {
+        "id": "test",
+        "name": "test",
+        "has_submenu": false,
+        "submenu": [],
+        "filter_config": {
+            "section": true,
+            "device": false,
+            "process": false,
+            "status": true,
+            "category": true
+        },
+        "use_custom_file": false,
+        "custom_file": ""
+    },
+    {
+        "id": "pool",
+        "name": "pool",
+        "has_submenu": true,
+        "submenu": [],
+        "filter_config": {
+            "section": true,
+            "device": true,
             "process": true,
             "status": true,
             "category": false
-        }
+        },
+        "use_custom_file": false,
+        "custom_file": ""
     }
 ]
