@@ -132,45 +132,73 @@ $(document).ready(function () {
             </a>
             <ul class="dropdown-menu">
                 <?php
-                // mapping ke file statis jika ada (sesuaikan nama file bila perlu)
-                $mapping = [
-                    'Procedure' => 'procedure_login.php',
-                    'WI'        => 'wi_login.php',
-                    'Form'      => 'form_login.php',
-                    'MS & ROHS' => 'MSROHS.php',
-                    'Sample'    => 'monitor_login.php',
-                    'MSDS'      => 'msds_login.php',
-                    'Manual'    => 'manual.php',
-                    'Obsolate'  => 'obs_login.php'
-                ];
-
+                // Load document types dari JSON
                 $jsonFile = __DIR__ . '/data/document_types.json';
                 if (file_exists($jsonFile)) {
                     $docTypes = json_decode(file_get_contents($jsonFile), true);
-                    if (is_array($docTypes)) {
+                    if (is_array($docTypes) && count($docTypes) > 0) {
                         foreach ($docTypes as $dt) {
-                            $target = 'documents.php?type=' . urlencode($dt); // default
-                            // jika ada mapping dan file memang ada di server, arahkan ke file tersebut
-                            if (isset($mapping[$dt])) {
-                                $mappedFile = __DIR__ . '/' . $mapping[$dt];
-                                if (file_exists($mappedFile)) {
-                                    $target = $mapping[$dt];
+                            if (!is_array($dt) || !isset($dt['name'])) continue;
+                            
+                            $typeName = $dt['name'];
+                            $hasSubmenu = isset($dt['has_submenu']) && $dt['has_submenu'] === true;
+                            $submenu = isset($dt['submenu']) && is_array($dt['submenu']) ? $dt['submenu'] : [];
+                            $legacyFile = isset($dt['legacy_file']) ? $dt['legacy_file'] : '';
+                            
+                            // Jika punya submenu, buat dropdown
+                            if ($hasSubmenu && count($submenu) > 0) {
+                                echo '<li class="dropdown-submenu">';
+                                echo '<a href="#" class="dropdown-toggle" data-toggle="dropdown">'. htmlspecialchars($typeName) .' <span class="caret"></span></a>';
+                                echo '<ul class="dropdown-menu">';
+                                
+                                foreach ($submenu as $sub) {
+                                    if (!is_array($sub) || !isset($sub['name'])) continue;
+                                    $subName = $sub['name'];
+                                    $subLegacyFile = isset($sub['legacy_file']) ? $sub['legacy_file'] : '';
+                                    
+                                    // SMART ROUTING: Cek legacy file dulu
+                                    if (!empty($subLegacyFile) && file_exists(__DIR__ . '/' . $subLegacyFile)) {
+                                        // Legacy: Link ke file custom
+                                        $url = $subLegacyFile;
+                                    } else {
+                                        // Modern: Link ke documents.php
+                                        $url = 'documents.php?type=' . urlencode($typeName) . '&subtype=' . urlencode($subName);
+                                    }
+                                    
+                                    echo '<li><a href="'. htmlspecialchars($url) .'">'. htmlspecialchars($subName) .'</a></li>';
                                 }
+                                
+                                echo '</ul>';
+                                echo '</li>';
+                            } else {
+                                // Tidak punya submenu
+                                // SMART ROUTING: Cek legacy file dulu
+                                if (!empty($legacyFile) && file_exists(__DIR__ . '/' . $legacyFile)) {
+                                    // Legacy: Link ke file custom
+                                    $url = $legacyFile;
+                                } else {
+                                    // Modern: Link ke documents.php
+                                    $url = 'documents.php?type=' . urlencode($typeName);
+                                }
+                                
+                                echo '<li><a href="'. htmlspecialchars($url) .'">'. htmlspecialchars($typeName) .'</a></li>';
                             }
-                            echo '<li><a href="'. htmlspecialchars($target) .'">'. htmlspecialchars($dt) .'</a></li>';
                         }
                     } else {
-                        // fallback
+                        // Fallback jika JSON kosong
                         echo '<li><a href="documents.php?type=Procedure">Procedure</a></li>';
+                        echo '<li><a href="documents.php?type=WI">WI</a></li>';
+                        echo '<li><a href="documents.php?type=Form">Form</a></li>';
                     }
                 } else {
-                    // fallback static
+                    // Fallback jika file tidak ada
                     echo '<li><a href="documents.php?type=Procedure">Procedure</a></li>';
+                    echo '<li><a href="documents.php?type=WI">WI</a></li>';
+                    echo '<li><a href="documents.php?type=Form">Form</a></li>';
                 }
                 ?>
             </ul>
         </li>
-
 
         <li><a href="search.php" ><img src="images/search3.png" alt="Search"><br />Search</a></li>
         <li><a href="grafik.php" class="bg-info"><img src="images/graph.png" alt="Grafik"><br />Grafik</a></li>
@@ -193,6 +221,65 @@ $(document).ready(function () {
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1"></div>
   </div>
 </nav>
+
+<!-- CSS untuk Dropdown Submenu -->
+<style>
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu > .dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -6px;
+    margin-left: -1px;
+}
+
+.dropdown-submenu:hover > .dropdown-menu {
+    display: block;
+}
+
+.dropdown-submenu > a:after {
+    display: block;
+    content: " ";
+    float: right;
+    width: 0;
+    height: 0;
+    border-color: transparent;
+    border-style: solid;
+    border-width: 5px 0 5px 5px;
+    border-left-color: #ccc;
+    margin-top: 5px;
+    margin-right: -10px;
+}
+
+.dropdown-submenu:hover > a:after {
+    border-left-color: #fff;
+}
+
+.dropdown-submenu.pull-left {
+    float: none;
+}
+
+.dropdown-submenu.pull-left > .dropdown-menu {
+    left: -100%;
+    margin-left: 10px;
+}
+</style>
+
+<!-- JavaScript untuk Dropdown Submenu -->
+<script>
+$(document).ready(function(){
+    $('.dropdown-submenu a').on("click", function(e){
+        var $submenu = $(this).next(".dropdown-menu");
+        if($submenu.length) {
+            $submenu.toggle();
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    });
+});
+</script>
 
 </body>
 
