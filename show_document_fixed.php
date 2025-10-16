@@ -17,6 +17,7 @@ $filterOptionsFile = __DIR__ . '/data/filter_options.json';
 
 $docTypes = [];
 $filterConfig = [];
+$filterOverrides = [];
 $globalFilters = [];
 
 if (file_exists($jsonFile)) {
@@ -41,6 +42,7 @@ if (file_exists($jsonFile)) {
             } else {
                 // Gunakan config dari parent
                 $filterConfig = isset($dt['filter_config']) ? $dt['filter_config'] : [];
+                $filterOverrides = isset($dt['filter_overrides']) ? $dt['filter_overrides'] : [];
             }
             break;
         }
@@ -55,8 +57,18 @@ if (empty($filterConfig)) {
     ];
 }
 
-// Function untuk get filter label dan options (SIMPLE VERSION)
-function getFilterData($filterKey, $globalFilters) {
+// Function untuk get filter label dan options (dengan override support)
+function getFilterData($filterKey, $globalFilters, $filterOverrides) {
+    // Jika ada override, gunakan override
+    if (isset($filterOverrides[$filterKey])) {
+        $override = $filterOverrides[$filterKey];
+        return [
+            'label' => !empty($override['label']) ? $override['label'] : $globalFilters[$filterKey]['label'],
+            'options' => !empty($override['options']) ? $override['options'] : $globalFilters[$filterKey]['options']
+        ];
+    }
+    
+    // Jika tidak ada override, gunakan global
     if (isset($globalFilters[$filterKey])) {
         return [
             'label' => $globalFilters[$filterKey]['label'],
@@ -135,8 +147,8 @@ $(document).ready(function () {
                 foreach ($filterConfig as $filterKey => $isEnabled):
                     if (!$isEnabled) continue;
                     
-                    // Get filter data - 100% DARI JSON (NO OVERRIDE)
-                    $filterData = getFilterData($filterKey, $globalFilters);
+                    // Get filter data (dengan override support)
+                    $filterData = getFilterData($filterKey, $globalFilters, $filterOverrides);
                     $filterLabel = $filterData['label'];
                     $filterOptions = $filterData['options'];
                     
@@ -153,7 +165,7 @@ $(document).ready(function () {
                         <select name="<?php echo htmlspecialchars($paramName); ?>" class="form-control">
                             <option value=""> --- Select <?php echo htmlspecialchars($filterLabel); ?> --- </option>
                             <?php 
-                            // ===== 100% DARI JSON - TIDAK ADA QUERY DATABASE =====
+                            // Tampilkan options dari JSON (100% dynamic)
                             foreach ($filterOptions as $opt) {
                                 $selected = (isset($_GET[$paramName]) && $_GET[$paramName] == $opt) ? 'selected' : '';
                                 
@@ -188,13 +200,24 @@ $(document).ready(function () {
 <?php
 // Build query jika form disubmit
 if (isset($_GET['submit'])) {
-    // WHERE condition untuk doc_type (WAJIB)
+    // WHERE condition untuk doc_type
     $whereConditions = ["doc_type = '" . mysqli_real_escape_string($link, $type) . "'"];
     
-    // ===== FLEXIBLE FILTER: Mirip procedure_login.php =====
-    // HANYA filter jika user AKTIF memilih nilai (tidak ada auto-filter ketat)
+    // LOGIC: Filter otomatis berdasarkan submenu menggunakan kolom device
+    if (!empty($subtype)) {
+        $subtype_lower = strtolower($subtype);
+        
+        // PRODUCTION submenu = dokumen yang punya device production
+        if (strpos($subtype_lower, 'production') !== false) {
+            $whereConditions[] = "(device IS NOT NULL AND device != '' AND device != '-' AND device != 'General Production')";
+        }
+        // OTHER submenu = dokumen tanpa device spesifik atau general
+        elseif (strpos($subtype_lower, 'other') !== false) {
+            $whereConditions[] = "(device IS NULL OR device = '' OR device = '-' OR device = 'General Production')";
+        }
+    }
     
-    // Apply filters berdasarkan input user saja
+    // Apply filters berdasarkan input user (DYNAMIC)
     foreach ($filterConfig as $filterKey => $isEnabled) {
         if (!$isEnabled) continue;
         
@@ -203,8 +226,7 @@ if (isset($_GET['submit'])) {
         if ($filterKey === 'process') $paramName = 'proc';
         if ($filterKey === 'category') $paramName = 'cat';
         
-        // HANYA tambahkan filter jika user memilih nilai
-        if (isset($_GET[$paramName]) && trim($_GET[$paramName]) !== '') {
+        if (!empty($_GET[$paramName])) {
             $whereConditions[] = "$filterKey = '" . mysqli_real_escape_string($link, $_GET[$paramName]) . "'";
         }
     }
@@ -216,7 +238,6 @@ if (isset($_GET['submit'])) {
     
     if (!$result) {
         echo "<div class='alert alert-danger'>Query error: ". htmlspecialchars(mysqli_error($link)) ."</div>";
-        echo "<div class='alert alert-info'>Query: " . htmlspecialchars($sql) . "</div>";
         exit;
     }
 ?>
@@ -241,7 +262,7 @@ if (isset($_GET['submit'])) {
                 // Skip beberapa kolom yang tidak perlu ditampilkan di tabel
                 if (in_array($filterKey, ['status', 'category'])) continue;
                 
-                $filterData = getFilterData($filterKey, $globalFilters);
+                $filterData = getFilterData($filterKey, $globalFilters, $filterOverrides);
                 $filterLabel = $filterData['label'];
                 
                 echo "<td>" . htmlspecialchars($filterLabel) . "</td>";
@@ -255,9 +276,7 @@ if (isset($_GET['submit'])) {
     <tbody>
     <?php
     $i = 1;
-    $rowCount = 0;
     while ($info = mysqli_fetch_assoc($result)) {
-        $rowCount++;
         $has_sos = !empty($info['sos_file']);
     ?>
         <tr>
@@ -384,12 +403,6 @@ if (isset($_GET['submit'])) {
     <?php
         $i++;
     }
-    
-    // Debug: tampilkan jumlah hasil
-    if ($rowCount === 0) {
-        echo "<tr><td colspan='20' class='text-center'><div class='alert alert-warning' style='margin:20px;'>Tidak ada dokumen yang ditemukan dengan filter tersebut.</div></td></tr>";
-        echo "<tr><td colspan='20'><div class='alert alert-info' style='margin:20px;'><strong>Debug Query:</strong><br>" . htmlspecialchars($sql) . "</div></td></tr>";
-    }
     ?>
     </tbody>
 </table>
@@ -399,30 +412,29 @@ if (isset($_GET['submit'])) {
     // Tampilkan instruksi jika belum submit
     echo "<div class='alert alert-info' style='margin-top:20px;'>";
     echo "<h4><span class='glyphicon glyphicon-info-sign'></span> Cara Menggunakan</h4>";
-    echo "<p>Klik tombol <strong>Show</strong> untuk menampilkan <strong>SEMUA dokumen " . htmlspecialchars($type) . "</strong>.</p>";
-    echo "<p>Atau pilih filter terlebih dahulu untuk menyaring hasil:</p>";
-    echo "<ul>";
+    echo "<p>Silakan pilih filter di sidebar kiri, kemudian klik tombol <strong>Show</strong> untuk menampilkan dokumen.</p>";
     
-    // List filter yang tersedia
-    foreach ($filterConfig as $filterKey => $isEnabled) {
-        if (!$isEnabled) continue;
-        $filterData = getFilterData($filterKey, $globalFilters);
-        echo "<li><strong>" . htmlspecialchars($filterData['label']) . "</strong></li>";
-    }
-    
-    echo "</ul>";
-    
-    // Info submenu (jika ada) - bersifat informational saja
+    // Tampilkan info submenu logic jika ada
     if (!empty($subtype)) {
-        echo "<hr>";
-        echo "<p class='text-muted'><small><span class='glyphicon glyphicon-tag'></span> Anda berada di submenu: <strong>" . htmlspecialchars($subtype) . "</strong></small></p>";
-        
         $subtype_lower = strtolower($subtype);
         if (strpos($subtype_lower, 'production') !== false) {
-            echo "<p class='text-muted'><small>Submenu ini biasanya untuk dokumen dengan device production tertentu.</small></p>";
+            echo "<p class='text-success'><strong>Info:</strong> Submenu ini menampilkan dokumen <strong>Production</strong> (dengan device production).</p>";
         } elseif (strpos($subtype_lower, 'other') !== false) {
-            echo "<p class='text-muted'><small>Submenu ini biasanya untuk dokumen general/tanpa device spesifik.</small></p>";
+            echo "<p class='text-info'><strong>Info:</strong> Submenu ini menampilkan dokumen <strong>Other/General</strong> (tanpa device spesifik).</p>";
         }
+    }
+    
+    // Tampilkan info filter override jika ada
+    if (!empty($filterOverrides)) {
+        echo "<div class='alert alert-success' style='margin-top:10px;'>";
+        echo "<strong><span class='glyphicon glyphicon-wrench'></span> Customized Filters:</strong><br>";
+        foreach ($filterOverrides as $key => $override) {
+            if (isset($filterConfig[$key]) && $filterConfig[$key]) {
+                $filterData = getFilterData($key, $globalFilters, $filterOverrides);
+                echo "• <strong>" . htmlspecialchars($filterData['label']) . "</strong> (custom untuk document type ini)<br>";
+            }
+        }
+        echo "</div>";
     }
     
     echo "</div>";
@@ -496,3 +508,4 @@ if (isset($_GET['submit'])) {
 </div>
 
 <script src="bootstrap/js/bootstrap.min.js"></script>
+<?php include('footer.php'); ?>

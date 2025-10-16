@@ -175,23 +175,22 @@
                     "section": true,
                     "device": false,
                     "process": false,
-                    "status": true,
-                    "category": true
+                    "status": false,
+                    "category": false,
+                    "papper": false
                 }
             },
             {
                 "id": "hss_other",
                 "name": "Hss other",
-                "use_custom_file": false,
-                "custom_file": "",
                 "filter_config": {
                     "section": true,
-                    "device": true,
-                    "process": true,
-                    "status": true,
-                    "category": false
-                },
-                "is_legacy": false
+                    "device": false,
+                    "process": false,
+                    "status": false,
+                    "category": false,
+                    "papper": false
+                }
             }
         ],
         "filter_config": {
@@ -205,32 +204,19 @@
         "custom_file": ""
     },
     {
-        "id": "test",
-        "name": "test",
+        "id": "perintis",
+        "name": "Perintis",
         "has_submenu": false,
         "submenu": [],
         "filter_config": {
             "section": true,
-            "device": false,
+            "device": true,
             "process": false,
             "status": true,
-            "category": true
+            "category": true,
+            "papper": false
         },
-        "use_custom_file": false,
-        "custom_file": ""
-    },
-    {
-        "id": "pool",
-        "name": "pool",
-        "has_submenu": true,
-        "submenu": [],
-        "filter_config": {
-            "section": true,
-            "device": true,
-            "process": true,
-            "status": true,
-            "category": false
-        },
+        "filter_overrides": [],
         "use_custom_file": false,
         "custom_file": ""
     }

@@ -3,8 +3,6 @@
 // Siap-tempel — pastikan koneksi ($link) / header.php sesuai environment Anda.
 
 include('header.php');    // header / session bila perlu
-include 'koneksi.php';
-require_once('Connections/config.php');
 ?>
 <!doctype html>
 <html lang="en">
