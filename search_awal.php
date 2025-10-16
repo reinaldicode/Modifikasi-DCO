@@ -5,8 +5,6 @@
 // Table transparan, header sticky, pagination tetap di bawah.
 
 include('index.php');    // header / session bila perlu
-include 'koneksi.php';
-require_once('Connections/config.php');
 ?>
 <!doctype html>
 <html lang="en">

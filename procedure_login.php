@@ -29,8 +29,6 @@ include('header.php');
 
 <?php
 // koneksi
-include 'koneksi.php';
-require_once('Connections/config.php');
 
 // ambil session state/ nrp jika ada
 $state = $_SESSION['state'] ?? '';

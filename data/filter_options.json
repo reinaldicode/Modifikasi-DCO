@@ -1,0 +1,58 @@
+{
+    "section": {
+        "label": "Section",
+        "options": [
+            "Accounting",
+            "BMG",
+            "werehouse",
+            "mis"
+        ]
+    },
+    "device": {
+        "label": "Device",
+        "options": [
+            "printer",
+            "pc",
+            "keyboard",
+            "mouse",
+            "HandPhone",
+            "General Production"
+        ]
+    },
+    "process": {
+        "label": "Process",
+        "options": [
+            "Cutting",
+            "Welding",
+            "Assembly",
+            "Inspection",
+            "Packaging"
+        ]
+    },
+    "status": {
+        "label": "Status",
+        "options": [
+            "Active",
+            "Inactive",
+            "Pending",
+            "Archived",
+            "bom"
+        ]
+    },
+    "category": {
+        "label": "Category",
+        "options": [
+            "Internal",
+            "External",
+            "Public"
+        ]
+    },
+    "papper": {
+        "label": "kertas",
+        "options": [
+            "boom",
+            "biim",
+            "baam"
+        ]
+    }
+}

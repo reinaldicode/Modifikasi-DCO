@@ -6,6 +6,13 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// ========================================
+// GUARD: Cegah koneksi ganda
+// ========================================
+if (isset($link) && $link instanceof mysqli) {
+    return; // Koneksi sudah ada, skip
+}
+
 /*
  * Konfigurasi koneksi database
  * - Pertama coba koneksi ke server kantor (192.168.132.36, user admin)
